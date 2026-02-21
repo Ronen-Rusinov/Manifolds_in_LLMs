@@ -1,0 +1,7 @@
+gdown
+numpy
+scipy
+matplotlib
+scikit-learn
+torch
+transformers
