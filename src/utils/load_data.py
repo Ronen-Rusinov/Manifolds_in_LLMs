@@ -11,9 +11,8 @@ from pathlib import Path
 import pandas as pd
 
 #PLEASE NOTE THOSE TWO ARE NOT SCRIPTS. If you want to pass them as arguments, stringify them first, will save you a headache.
-DATAPATH = Path(__file__).parent.parent / "data" / "activations_data"
+DATAPATH = Path(__file__).parent.parent.parent / "data" / "activations_data"
 FIRST_PARQUET_PATH = DATAPATH / "activations_part_01_of_10.parquet"
-
 def load_first_parquet():
     if not FIRST_PARQUET_PATH.exists():
         raise FileNotFoundError(f"First parquet file not found at {FIRST_PARQUET_PATH}. Please run pull_data.py to download the data.")
@@ -91,4 +90,7 @@ if __name__ == "__main__":
     start_time = time.time()
     df = load_first_parquet()
     print(f"Loaded first parquet in {time.time() - start_time:.2f} seconds. Shape: {df.shape}")
+    #print fields and dtypes
+    print(df.dtypes)
+
     
