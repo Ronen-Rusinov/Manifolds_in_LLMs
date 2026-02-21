@@ -232,3 +232,4 @@ data/activations_data/
 *.tmp
 *.bak
 test_*
+*.html
