@@ -222,3 +222,13 @@ __marimo__/
 *.tar.gz
 *.joblib
 data/activations_data/
+
+#temp/test files
+*_test.slurm
+*_test.py
+*.log
+*.out
+*.err
+*.tmp
+*.bak
+test_*
