@@ -233,3 +233,6 @@ data/activations_data/
 *.bak
 test_*
 *.html
+*.jpg
+*.png
+*.svg
