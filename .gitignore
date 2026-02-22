@@ -221,6 +221,7 @@ __marimo__/
 *.zip
 *.tar.gz
 *.joblib
+*.pt
 data/activations_data/
 
 #temp/test files
