@@ -40,7 +40,7 @@ def main():
     input_dim = train_activations.shape[1]
     latent_dim = 12 
     print(f"Initializing StandardAutoencoder with input_dim={input_dim} and latent_dim={latent_dim}")
-    autoencoder = StandardAutoencoder(input_dim=input_dim, latent_dim=latent_dim, device='cuda' if torch.cuda.is_available() else 'cpu')
+    autoencoder = StandardAutoencoder(input_dim=input_dim, latent_dim=latent_dim, device='cuda' if torch.cuda.is_available() else 'cpu', dtype=torch.float16)
 
     # Train with early stopping
     print("Training autoencoder with early stopping...")
