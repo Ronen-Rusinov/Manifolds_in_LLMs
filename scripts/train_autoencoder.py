@@ -17,6 +17,8 @@ def main():
     print("Loading all activations...")
     start_time = time.time()
     train_df,val_df,test_df = load_train_test_val_all_parquets(timing=True)
+    train_df = test_df.sample(frac=0.5, random_state=42)  # Use only 50% of the training data Cause otherwise GPU explodes
+    val_df = val_df.sample(frac=0.5, random_state=42)  # Use only 50% of the validation data 
     print(f"Total time to load: {time.time() - start_time:.2f}s")
     print(f"Train DataFrame shape: {train_df.shape}")
     print(f"Validation DataFrame shape: {val_df.shape}")
