@@ -32,8 +32,8 @@ import plotly.graph_objects as go
 N_NEIGHBORS = 10 #number of neighbors for geodesic distance estimation in Isomap
 N_COMPONENTS_12D = 12
 N_COMPONENTS_3D = 3
-N_COMPONENTS_2D = 2
-N_VISUALIZATION_SAMPLES = 5  # Number of samples to visualize in 2D/3D
+N_COMPONENTS_4D = 4
+N_VISUALIZATION_SAMPLES = 5  # Number of samples to visualize in 3D/4D
 
 def load_centroids():
     """Load centroids from minibatch_kmeans."""
@@ -111,7 +111,7 @@ def process_all_centroids(centroids, neighbor_indices, activations, prompts, off
     print(f"[{datetime.now()}] Processing {count} centroids (offset: {offset}, range: [{offset}, {offset + count - 1}])...", flush=True)
     
     # Create subdirectories for different dimensions
-    for dim_dir in ["12D", "3D", "2D"]:
+    for dim_dir in ["12D", "3D", "4D"]:
         (output_dir / dim_dir).mkdir(parents=True, exist_ok=True)
     
     for i, centroid_idx in enumerate(range(offset, offset + count)):
@@ -148,15 +148,15 @@ def process_all_centroids(centroids, neighbor_indices, activations, prompts, off
             # Apply Isomap to 3D for visualization (sample)
             print(f"[{datetime.now()}] Applying Isomap to 3D for visualization...", flush=True)
             # Use a subset of samples for 3D to reduce computation
-            sample_size = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
-            sample_indices = np.random.choice(len(neighborhood_activations), sample_size, replace=False)
-            sampled_activations_3d = neighborhood_activations[sample_indices]
+            sample_size_3d = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
+            sample_indices_3d = np.random.choice(len(neighborhood_activations), sample_size_3d, replace=False)
+            sampled_activations_3d = neighborhood_activations[sample_indices_3d]
         
             embeddings_3d, isomap_3d = apply_isomap_to_neighborhood(
                 sampled_activations_3d,
-                sample_indices,
+                sample_indices_3d,
                 N_COMPONENTS_3D,
-                min(50, sample_size - 1)
+                min(50, sample_size_3d - 1)
             )
                 
             # Save 3D results
@@ -167,88 +167,94 @@ def process_all_centroids(centroids, neighbor_indices, activations, prompts, off
             print(f"[{datetime.now()}] 3D embeddings saved to {embeddings_3d_path}", flush=True)
             del isomap_3d
             
-            # Apply Isomap to 2D for visualization (sample)
-            print(f"[{datetime.now()}] Applying Isomap to 2D for visualization...", flush=True)
-            sample_size_2d = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
-            sample_indices_2d = np.random.choice(len(neighborhood_activations), sample_size_2d, replace=False)
-            sampled_activations_2d = neighborhood_activations[sample_indices_2d]
+            # Apply Isomap to 4D for visualization (sample)
+            print(f"[{datetime.now()}] Applying Isomap to 4D for visualization...", flush=True)
+            sample_size_4d = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
+            sample_indices_4d = np.random.choice(len(neighborhood_activations), sample_size_4d, replace=False)
+            sampled_activations_4d = neighborhood_activations[sample_indices_4d]
             
-            embeddings_2d, isomap_2d = apply_isomap_to_neighborhood(
-                sampled_activations_2d,
-                sample_indices_2d,
-                N_COMPONENTS_2D,
-                min(30, sample_size_2d - 1)
+            embeddings_4d, isomap_4d = apply_isomap_to_neighborhood(
+                sampled_activations_4d,
+                sample_indices_4d,
+                N_COMPONENTS_4D,
+                min(30, sample_size_4d - 1)
             )
                 
-            # Save 2D results
-            embeddings_2d_path = output_dir / "2D" / f"centroid_{centroid_idx:04d}_embeddings_2D.npy"
-            isomap_2d_path = output_dir / "2D" / f"centroid_{centroid_idx:04d}_isomap_2D.joblib"
-            np.save(embeddings_2d_path, embeddings_2d)
-            joblib.dump(isomap_2d, isomap_2d_path)
-            print(f"[{datetime.now()}] 2D embeddings saved to {embeddings_2d_path}", flush=True)
-            del isomap_2d
+            # Save 4D results
+            embeddings_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_embeddings_4D.npy"
+            isomap_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_isomap_4D.joblib"
+            np.save(embeddings_4d_path, embeddings_4d)
+            joblib.dump(isomap_4d, isomap_4d_path)
+            print(f"[{datetime.now()}] 4D embeddings saved to {embeddings_4d_path}", flush=True)
+            del isomap_4d
             # Get prompts for all samples in this neighborhood
             neighborhood_prompts = [prompts[idx] for idx in neighbor_idx]
-            neighborhood_prompts_2d = [neighborhood_prompts[i] for i in sample_indices_2d]
-            neighborhood_prompts_3d = [neighborhood_prompts[i] for i in sample_indices]
+            neighborhood_prompts_3d = [neighborhood_prompts[i] for i in sample_indices_3d]
+            neighborhood_prompts_4d = [neighborhood_prompts[i] for i in sample_indices_4d]
                 
             # Create interactive HTML visualizations with prompt tooltips
             print(f"[{datetime.now()}] Creating interactive HTML visualizations...", flush=True)
-            create_html_visualizations(embeddings_2d, embeddings_3d, neighborhood_prompts_2d, neighborhood_prompts_3d, centroid_idx, output_dir)
+            create_html_visualizations(embeddings_3d, embeddings_4d, neighborhood_prompts_3d, neighborhood_prompts_4d, centroid_idx, output_dir)
         
     print(f"\n[{datetime.now()}] All centroids processed successfully!", flush=True)
 
-def create_html_visualizations(embeddings_2d, embeddings_3d, prompts_2d, prompts_3d, centroid_idx, output_dir):
-    """Create interactive HTML visualizations with prompt tooltips using Plotly."""
-    # Create text snippets for hover
-    hover_text_2d = [get_text_snippet(p) for p in prompts_2d]
-    hover_text_3d = [get_text_snippet(p) for p in prompts_3d]
+def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts_4d, centroid_idx, output_dir):
+    """Create interactive HTML visualizations with prompt tooltips using Plotly.
     
-    # 2D Interactive visualization
-    fig_2d = go.Figure(data=go.Scatter(
-        x=embeddings_2d[:, 0],
-        y=embeddings_2d[:, 1],
+    For 3D: projects to 2D (x, y) with z represented by color.
+    For 4D: projects to 3D (x, y, z) with w represented by color.
+    """
+    # Create text snippets for hover
+    hover_text_3d = [get_text_snippet(p) for p in prompts_3d]
+    hover_text_4d = [get_text_snippet(p) for p in prompts_4d]
+    
+    # 3D Interactive visualization (2D plot with color for 3rd dimension)
+    fig_3d = go.Figure(data=go.Scatter(
+        x=embeddings_3d[:, 0],
+        y=embeddings_3d[:, 1],
         mode='markers',
         marker=dict(
-            size=5,
-            color=np.arange(len(embeddings_2d)),
-            colorscale='Viridis',
+            size=6,
+            color=embeddings_3d[:, 2],
+            colorscale='Sunsetdark',
             showscale=True,
+            colorbar=dict(title="Component 3"),
             opacity=0.7
         ),
-        text=hover_text_2d,
-        hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<extra></extra>',
+        text=hover_text_3d,
+        hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 3:</b> %{marker.color:.3f}<extra></extra>',
     ))
-    fig_2d.update_layout(
-        title=f"2D Isomap Embeddings - Centroid {centroid_idx}",
+    fig_3d.update_layout(
+        title=f"3D Isomap Embeddings (2D projection + color) - Centroid {centroid_idx}",
         xaxis_title="Component 1",
         yaxis_title="Component 2",
         hovermode='closest',
         width=1000,
         height=800
     )
-    html_2d_path = output_dir / "2D" / f"centroid_{centroid_idx:04d}_visualization_2D.html"
-    fig_2d.write_html(str(html_2d_path))
-    print(f"[{datetime.now()}] 2D interactive HTML saved to {html_2d_path}", flush=True)
+    html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
+    fig_3d.write_html(str(html_3d_path))
+    print(f"[{datetime.now()}] 3D interactive HTML saved to {html_3d_path}", flush=True)
     
-    # 3D Interactive visualization
-    fig_3d = go.Figure(data=go.Scatter3d(
-        x=embeddings_3d[:, 0],
-        y=embeddings_3d[:, 1],
-        z=embeddings_3d[:, 2],
+    # 4D Interactive visualization (3D plot with color for 4th dimension)
+    fig_4d = go.Figure(data=go.Scatter3d(
+        x=embeddings_4d[:, 0],
+        y=embeddings_4d[:, 1],
+        z=embeddings_4d[:, 2],
         mode='markers',
         marker=dict(
-            size=3,
-            color=np.arange(len(embeddings_3d)),
-            colorscale='Viridis',
+            size=4,
+            color=embeddings_4d[:, 3],
+            colorscale='Sunsetdark',
             showscale=True,
+            colorbar=dict(title="Component 4"),
             opacity=0.7
         ),
-        text=hover_text_3d,
-        hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<extra></extra>',
+        text=hover_text_4d,
+        hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 4:</b> %{marker.color:.3f}<extra></extra>',
     ))
-    fig_3d.update_layout(
-        title=f"3D Isomap Embeddings - Centroid {centroid_idx}",
+    fig_4d.update_layout(
+        title=f"4D Isomap Embeddings (3D projection + color) - Centroid {centroid_idx}",
         scene=dict(
             xaxis_title="Component 1",
             yaxis_title="Component 2",
@@ -258,9 +264,9 @@ def create_html_visualizations(embeddings_2d, embeddings_3d, prompts_2d, prompts
         width=1000,
         height=800
     )
-    html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
-    fig_3d.write_html(str(html_3d_path))
-    print(f"[{datetime.now()}] 3D interactive HTML saved to {html_3d_path}", flush=True)
+    html_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_visualization_4D.html"
+    fig_4d.write_html(str(html_4d_path))
+    print(f"[{datetime.now()}] 4D interactive HTML saved to {html_4d_path}", flush=True)
 
 def main():
     print(f"[{datetime.now()}] Starting isomap processing for each centroid...", flush=True)
