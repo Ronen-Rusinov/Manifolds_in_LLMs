@@ -12,24 +12,23 @@ class StandardAutoencoder(torch.nn.Module):
         super(StandardAutoencoder, self).__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim
-        self.hidden_dim_1 = int(2/3 * input_dim + 1/3 * latent_dim)
-        self.hidden_dim_2 = int(1/3 * input_dim + 2/3 * latent_dim)
+        self.hidden_dim = int(1/2 * input_dim + 1/2 * latent_dim)
         self.device = device
 
         self.encoder = torch.nn.Sequential(
-            torch.nn.Linear(self.input_dim, self.hidden_dim_1),
+            torch.nn.Linear(self.input_dim, self.hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(self.hidden_dim_1, self.hidden_dim_2),
+            torch.nn.Linear(self.hidden_dim, self.hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(self.hidden_dim_2, self.latent_dim)
+            torch.nn.Linear(self.hidden_dim, self.latent_dim)
         )
 
         self.decoder = torch.nn.Sequential(
-            torch.nn.Linear(self.latent_dim, self.hidden_dim_2),
+            torch.nn.Linear(self.latent_dim, self.hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(self.hidden_dim_2, self.hidden_dim_1),
+            torch.nn.Linear(self.hidden_dim, self.hidden_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(self.hidden_dim_1, self.input_dim)
+            torch.nn.Linear(self.hidden_dim, self.input_dim)
         )
 
     def forward(self, x):
