@@ -16,8 +16,6 @@ def main():
     print("Loading all activations...")
     start_time = time.time()
     train_df, val_df, test_df = load_train_test_val_all_parquets(timing=True)
-    train_df = train_df.sample(frac=0.5, random_state=42)  # Use only 50% of the training data
-    val_df = val_df.sample(frac=0.5, random_state=42)  # Use only 50% of the validation data 
     print(f"Total time to load: {time.time() - start_time:.2f}s")
     print(f"Train DataFrame shape: {train_df.shape}")
     print(f"Validation DataFrame shape: {val_df.shape}")
@@ -56,9 +54,9 @@ def main():
     autoencoder.train_with_accumulation(
         data=train_activations,      # Keep on CPU, loaded to GPU in batches
         val_data=val_activations,    # Keep on CPU, loaded to GPU in batches
-        num_epochs=300,
-        learning_rate=1e-3,
-        patience=20,
+        num_epochs=1000,
+        learning_rate=5*1e-3,
+        patience=50,
         accumulation_steps=6  # Split data into 6 partitions
     )
 
@@ -80,18 +78,18 @@ def main():
 
     # Save histogram
     import matplotlib.pyplot as plt
-    plt.hist(reconstruction_errors, bins=50)
+    plt.hist(reconstruction_errors, bins=100)
     plt.title(f"Reconstruction Error Distribution on Test Set\nMean: {reconstruction_errors_mean:.6f}, Std: {reconstruction_errors_std:.6f}")
     plt.xlabel("Reconstruction Error (MSE)")
     plt.ylabel("Frequency")
     plt.grid(True)
-    hist_path = Path(__file__).parent.parent / "results" / "autoencoder" / "reconstruction_error_histogram_native.png"
+    hist_path = Path(__file__).parent.parent / "results" / "autoencoder" / "reconstruction_error_histogram_native_long_train.png"
     hist_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(hist_path)
     print(f"Reconstruction error histogram saved to {hist_path}")
 
     # Save the model
-    model_path = Path(__file__).parent.parent / "results" / "autoencoder" / "autoencoder_native.pt"
+    model_path = Path(__file__).parent.parent / "results" / "autoencoder" / "autoencoder_native_long_train.pt"
     torch.save(autoencoder.state_dict(), model_path)
     print(f"Model saved to {model_path}")
 
