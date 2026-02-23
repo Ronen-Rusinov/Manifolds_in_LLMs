@@ -8,7 +8,7 @@ class StandardAutoencoder(torch.nn.Module):
     ReLU activation is used specifically for local linearity
     """
 
-    def __init__(self, input_dim, latent_dim, device='cpu', dtype=torch.float16):
+    def __init__(self, input_dim, latent_dim, device='cpu', dtype=torch.float32):
         super(StandardAutoencoder, self).__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim
