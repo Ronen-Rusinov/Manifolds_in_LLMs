@@ -4,7 +4,7 @@
 #SBATCH --error=./slurm/logs/errs/minibatch_kmeans/MiniBatchKMeans_%j.err
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=15
 #SBATCH --mem=200GB
 #SBATCH --partition=studentbatch
 

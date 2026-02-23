@@ -30,18 +30,21 @@ def main():
     # Run MiniBatchKMeans
     print("\nRunning MiniBatchKMeans clustering...")
     print("Parameters:")
-    print(f"  - batch_size: 150000")
-    print(f"  - n_clusters: 200")
+    print(f"  - batch_size: 200000")
+    print(f"  - n_clusters: 1000")
     print(f"  - random_state: 42")
     
     start_time = time.time()
     kmeans = MiniBatchKMeans(
-        n_clusters=200,
-        batch_size=150_000,
+        n_clusters=1000,
+        batch_size=200_000,
         random_state=42,
         verbose=10,
-        n_init=10,
-        max_iter=100
+        n_init=3,
+        max_iter=300,
+        max_no_improvement=30, 
+        reassignment_ratio=0.05
+
     )
     kmeans.fit(activations)
     fit_time = time.time() - start_time
@@ -49,7 +52,7 @@ def main():
     print(f"Inertia: {kmeans.inertia_:.4f}")
     
     #save centroids
-    centroids_path = Path(__file__).parent.parent / "results" / "minibatch_kmeans" / "centroids.npy"
+    centroids_path = Path(__file__).parent.parent / "results" / "minibatch_kmeans_1000" / "centroids_1000.npy"
     #if directory doesn't exist, create it
     centroids_path.parent.mkdir(parents=True, exist_ok=True)
     np.save(centroids_path, kmeans.cluster_centers_)
@@ -61,9 +64,9 @@ def main():
         print(f"  - {param}: {value}")
     
     #save params
-    output_dir = Path(__file__).parent.parent / "results" / "minibatch_kmeans"
+    output_dir = Path(__file__).parent.parent / "results" / "minibatch_kmeans_1000"
     output_dir.mkdir(parents=True, exist_ok=True)
-    params_path = output_dir / "kmeans_params.txt"
+    params_path = output_dir / "kmeans_params_1000.txt"
     with open(params_path, "w") as f:
         f.write("MiniBatchKMeans Parameters\n")
         f.write("=" * 30 + "\n")
@@ -72,7 +75,7 @@ def main():
     print(f"Parameters saved to {params_path}")
     
     # Create a summary file
-    summary_path = output_dir / "summary.txt"
+    summary_path = output_dir / "summary_1000.txt"
     with open(summary_path, "w") as f:
         f.write("MiniBatchKMeans Results\n")
         f.write("=" * 50 + "\n\n")
@@ -82,7 +85,10 @@ def main():
         f.write("KMeans Parameters:\n")
         f.write(f"  - n_clusters: {kmeans.n_clusters}\n")
         f.write(f"  - batch_size: {kmeans.batch_size}\n")
-        f.write(f"  - random_state: 42\n\n")
+        f.write(f"  - random_state: 42\n")
+        f.write(f"  - max_iter: {kmeans.max_iter}\n")
+        f.write(f"  - max_no_improvement: {kmeans.max_no_improvement}\n")
+        f.write(f"  - reassignment_ratio: {kmeans.reassignment_ratio}\n\n")
         f.write("Results:\n")
         f.write(f"  - Inertia: {kmeans.inertia_:.4f}\n")
         f.write(f"  - Fitting Time: {fit_time:.2f}s\n")
