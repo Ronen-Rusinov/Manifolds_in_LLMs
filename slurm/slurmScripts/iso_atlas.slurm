@@ -7,8 +7,6 @@
 #SBATCH --cpus-per-task=5
 #SBATCH --mem=100GB
 #SBATCH --partition=studentbatch
-#SBATCH --gres=gpu:1
-#SBATCH --constraint="geforce_rtx_2080"
 #SBATCH --array=[0,40,80,120,160]
 
 echo "Running Isomap for centroids in range: ${SLURM_ARRAY_TASK_ID} to $((${SLURM_ARRAY_TASK_ID} + 40))"
