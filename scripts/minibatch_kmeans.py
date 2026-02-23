@@ -30,18 +30,18 @@ def main():
     # Run MiniBatchKMeans
     print("\nRunning MiniBatchKMeans clustering...")
     print("Parameters:")
-    print(f"  - batch_size: 20000")
+    print(f"  - batch_size: 150000")
     print(f"  - n_clusters: 200")
     print(f"  - random_state: 42")
     
     start_time = time.time()
     kmeans = MiniBatchKMeans(
-        n_clusters=2,
-        batch_size=20000,
+        n_clusters=200,
+        batch_size=150_000,
         random_state=42,
         verbose=10,
-        n_init=1,
-        max_iter=1
+        n_init=10,
+        max_iter=100
     )
     kmeans.fit(activations)
     fit_time = time.time() - start_time
