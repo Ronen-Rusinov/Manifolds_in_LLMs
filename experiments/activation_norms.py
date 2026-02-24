@@ -4,12 +4,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.utils import load_data
 import numpy as np
 
-print("Loading first parquet...")
+print("Loading data...")
 df = load_data.load_all_parquets(timing=True)
 
 print("Obtaining activations...")
-activations_layer_18 = np.array(df[f"activation_layer_18"].tolist(), dtype=np.float16)
-activations_layer_6 = np.array(df[f"activation_layer_6"].tolist(), dtype=np.float16)
+activations_layer_18 = np.array(df[f"activation_layer_18"].tolist(), dtype=np.float32)
+activations_layer_6 = np.array(df[f"activation_layer_6"].tolist(), dtype=np.float32)
 
 print("Shapes of activations:")
 print(f"Layer 18: {activations_layer_18.shape}")
@@ -22,6 +22,13 @@ norms_layer_6 = np.linalg.norm(activations_layer_6, axis=1)
 #remove any infinite or NaN values
 norms_layer_18 = norms_layer_18[np.isfinite(norms_layer_18)]
 norms_layer_6 = norms_layer_6[np.isfinite(norms_layer_6)]
+
+#Remove extreme outliers (values above the 99th percentile)
+percentile_99 = np.percentile(norms_layer_18, 99)
+norms_layer_18 = norms_layer_18[norms_layer_18 <= percentile_99]
+
+percentile_99 = np.percentile(norms_layer_6, 99)
+norms_layer_6 = norms_layer_6[norms_layer_6 <= percentile_99]
 
 print("Calculating statistics...")
 print(f"Layer 18 - Mean: {np.mean(norms_layer_18):.2f}, Std: {np.std(norms_layer_18):.2f}")
