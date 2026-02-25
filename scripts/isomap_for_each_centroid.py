@@ -278,8 +278,8 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
                 xaxis_title="Component 1",
                 yaxis_title="Component 2",
                 hovermode='closest',
-                width=config.visualization.fig_width_large,
-                height=config.visualization.fig_height_large
+                #width=config.visualization.fig_width_large,
+                #height=config.visualization.fig_height_large
             )
             html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
             fig_3d.write_html(str(html_3d_path), include_plotlyjs=True)
