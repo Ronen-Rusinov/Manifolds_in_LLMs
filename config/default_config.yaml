@@ -61,7 +61,6 @@ clustering:
   
   # Large-scale neighborhood
   k_nearest_10000: 10000      # Number of nearest neighbors (large-scale)
-  k_nearest_1000: 1000        # Number of nearest neighbors (medium-scale)
   
   # KMeans parameters
   kmeans_n_init: 3            # Number of initializations for KMeans

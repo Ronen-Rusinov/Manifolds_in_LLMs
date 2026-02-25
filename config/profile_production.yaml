@@ -28,13 +28,12 @@ training:
 clustering:
   n_centroids: 200           # Full 200 centroid set
   n_clusters: 200            # MiniBatchKMeans clusters
-  k_nearest_neighbors: 20    # Standard k-nearest
+  k_nearest_neighbors: 100   # Standard k-nearest
   k_neighbors_isomap: 10     # Isomap neighbors
   k_neighbors_isomap_alt: 10
   k_neighbors_3d: 50
   k_neighbors_4d: 30
   k_nearest_10000: 10000     # Large-scale nearest neighbors
-  k_nearest_1000: 1000
   kmeans_n_init: 3           # Multiple initializations
   kmeans_verbose: 10
   kmeans_reassignment_ratio: 0.05
