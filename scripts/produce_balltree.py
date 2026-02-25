@@ -27,6 +27,8 @@ def build_ball_tree_first_parquet(config, layer, save_path=None, use_dual_tree=F
     print(f"[{datetime.now()}] BallTree built in {build_time:.2f} seconds.")
 
     if save_path is not None:
+        #Make sure the save path exists
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "wb") as f:
             pickle.dump(tree, f)
         print(f"[{datetime.now()}] BallTree saved to {save_path}.")
@@ -47,6 +49,8 @@ def build_ball_tree_all_parquets(config, layer, save_path=None):
     print(f"[{datetime.now()}] BallTree built in {build_time:.2f} seconds.")
 
     if save_path is not None:
+        #Make sure the save path exists
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, "wb") as f:
             pickle.dump(tree, f)
         print(f"[{datetime.now()}] BallTree saved to {save_path}.")
