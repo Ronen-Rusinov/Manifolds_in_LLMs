@@ -28,6 +28,5 @@ if existing_files:
 else:
     print("Downloading entire folder from Google Drive...")
     gdown.download_folder(f"https://drive.google.com/drive/folders/{FOLDER_ID}", output=str(output_path), quiet=False, use_cookies=False)
-    print("Download complete!")
 
 
