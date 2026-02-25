@@ -8,4 +8,5 @@
 #SBATCH --mem=200GB
 #SBATCH --partition=studentbatch
 
-python -u $LLM_PROJ_PATH/scripts/minibatch_kmeans.py
+python -u $LLM_PROJ_PATH/scripts/minibatch_kmeans.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

@@ -8,4 +8,5 @@
 #SBATCH --mem=100GB
 #SBATCH --partition=studentbatch
 
-python -u $LLM_PROJ_PATH/experiments/mapping_alignment.py
+python -u $LLM_PROJ_PATH/experiments/mapping_alignment.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

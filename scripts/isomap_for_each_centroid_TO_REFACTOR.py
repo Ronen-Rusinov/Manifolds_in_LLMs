@@ -1,17 +1,3 @@
-#This script relies on the outputs of obtain_10000_nearest_to_centroids.py
-#And subsequently relies on the output of minibatch_kmeans.py as well as
-#on the output of produce_balltree.py
-
-#Their outputs are stored in 
-#/outputs/Balltree/nearest_neighbors_indices_1.npy
-#/outputs/minibatch_kmeans/centroids.npy
-#and /outputs/Balltree/balltree_layer_18_all_parquets.pkl respectively.
-
-#For each centroid, we use the precomputed nearest neighbor indices
-#to retrieve a sorounding area of activations,
-#and then we apply isomap to reduce the dimensionality of this area to 12D
-#for visualisation purposes, several samples will also be reduced to 2D and 3D using isomap.
-
 import argparse
 import os
 import sys
@@ -22,18 +8,24 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from utils.load_data import load_all_parquets
+from config_manager import load_config_with_args
 
 import numpy as np
 import joblib
 from sklearn.manifold import Isomap
 import plotly.graph_objects as go
 
-# Configuration
-N_NEIGHBORS = 10 #number of neighbors for geodesic distance estimation in Isomap
-DEFAULT_N_COMPONENTS = 12
-N_COMPONENTS_3D = 3
-N_COMPONENTS_4D = 4
-N_VISUALIZATION_SAMPLES = 5  # Number of samples to visualize in 3D/4D
+# Load configuration with CLI argument overrides
+config = load_config_with_args(
+    description="Apply Isomap to neighborhoods around centroids"
+)
+
+# Configuration from config object
+N_NEIGHBORS = config.clustering.k_neighbors_isomap_alt
+DEFAULT_N_COMPONENTS = config.dimensionality.n_components
+N_COMPONENTS_3D = config.dimensionality.n_components_3d
+N_COMPONENTS_4D = config.dimensionality.n_components_4d
+N_VISUALIZATION_SAMPLES = config.data.n_samples_base  # Number of samples to visualize in 3D/4D
 
 def load_centroids():
     """Load centroids from minibatch_kmeans."""
@@ -67,8 +59,12 @@ def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_
     embeddings = isomap.fit_transform(activations)
     return embeddings, isomap
 
-def get_text_snippet(text, first_n=5, last_n=10):
+def get_text_snippet(text, config, first_n=None, last_n=None):
     """Extract first and last n tokens from text."""
+    if first_n is None:
+        first_n = config.text.first_n_tokens_isomap
+    if last_n is None:
+        last_n = config.text.last_n_tokens_isomap
     if text is None:
         return "N/A"
     tokens = str(text).split()
@@ -176,7 +172,7 @@ def process_all_centroids(
                     sampled_activations_3d,
                     sample_indices_3d,
                     N_COMPONENTS_3D,
-                    min(50, sample_size_3d - 1)
+                    min(config.clustering.k_neighbors_3d, sample_size_3d - 1)
                 )
                     
                 # Save 3D results
@@ -201,7 +197,7 @@ def process_all_centroids(
                     sampled_activations_4d,
                     sample_indices_4d,
                     N_COMPONENTS_4D,
-                    min(30, sample_size_4d - 1)
+                    min(config.clustering.k_neighbors_4d, sample_size_4d - 1)
                 )
                     
                 # Save 4D results
@@ -237,7 +233,7 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
     """
     if embeddings_3d is not None and prompts_3d is not None:
         # Create text snippets for hover
-        hover_text_3d = [get_text_snippet(p) for p in prompts_3d]
+        hover_text_3d = [get_text_snippet(p, config) for p in prompts_3d]
         
         # 3D Interactive visualization (2D plot with color for 3rd dimension)
         fig_3d = go.Figure(data=go.Scatter(
@@ -260,8 +256,8 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
             xaxis_title="Component 1",
             yaxis_title="Component 2",
             hovermode='closest',
-            width=1000,
-            height=800
+            width=config.visualization.fig_width_large,
+            height=config.visualization.fig_height_large
         )
         html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
         fig_3d.write_html(str(html_3d_path))
@@ -269,7 +265,7 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
     
     if embeddings_4d is not None and prompts_4d is not None:
         # Create text snippets for hover
-        hover_text_4d = [get_text_snippet(p) for p in prompts_4d]
+        hover_text_4d = [get_text_snippet(p, config) for p in prompts_4d]
         
         # 4D Interactive visualization (3D plot with color for 4th dimension)
         fig_4d = go.Figure(data=go.Scatter3d(
@@ -296,8 +292,8 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
                 zaxis_title="Component 3"
             ),
             hovermode='closest',
-            width=1000,
-            height=800
+            width=config.visualization.fig_width_large,
+            height=config.visualization.fig_height_large
         )
         html_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_visualization_4D.html"
         fig_4d.write_html(str(html_4d_path))
@@ -306,23 +302,20 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
 def main():
     print(f"[{datetime.now()}] Starting isomap processing for each centroid...", flush=True)
     
-    # Parse command-line arguments
+    # Parse command-line arguments for script-specific parameters
+    # (config parameters are already loaded at module level)
     parser = argparse.ArgumentParser(description="Run Isomap per centroid.")
     parser.add_argument("offset", nargs="?", type=int, default=0, help="Starting centroid index (0-based)")
     parser.add_argument("count", nargs="?", type=int, default=None, help="Number of centroids to process")
-    parser.add_argument(
-        "--n-components",
-        type=int,
-        default=DEFAULT_N_COMPONENTS,
-        help=f"Target dimensionality for main Isomap embeddings (default: {DEFAULT_N_COMPONENTS})",
-    )
     parser.add_argument("--no-3d", action="store_true", help="Disable 3D visualization embeddings")
     parser.add_argument("--no-4d", action="store_true", help="Disable 4D visualization embeddings")
-    args = parser.parse_args()
+    parser.add_argument("--config", type=str, default=None, help="Path to config file (already handled)")
+    
+    # Parse only script-specific args, ignoring config-related ones
+    args, unknown = parser.parse_known_args()
 
     offset = args.offset
     count = args.count
-    n_components = args.n_components
     enable_3d = not args.no_3d
     enable_4d = not args.no_4d
     
@@ -350,7 +343,7 @@ def main():
             neighbor_indices,
             activations,
             prompts,
-            n_components,
+            config.dimensionality.n_components,
             enable_3d=enable_3d,
             enable_4d=enable_4d,
             offset=offset,

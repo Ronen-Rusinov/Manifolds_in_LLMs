@@ -10,4 +10,5 @@
 #SBATCH --gres=gpu:1
 #SBATCH --constraint="geforce_rtx_2080"
 
-python -u $LLM_PROJ_PATH/experiments/autoencoder_with_guidance.py
+python -u $LLM_PROJ_PATH/experiments/autoencoder_with_guidance.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

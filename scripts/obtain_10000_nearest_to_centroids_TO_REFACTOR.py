@@ -6,11 +6,12 @@ from datetime import datetime
 #add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from utils import load_data
+from config_manager import load_config_with_args
 from sklearn.neighbors import BallTree
 import numpy
 import pickle
 
-K=10000
+config = load_config_with_args(description="Obtain 10000 nearest neighbors for each centroid")
 
 #load centroids
 print(f"[{datetime.now()}] loading centroids...")
@@ -39,7 +40,7 @@ if len(sys.argv) < 2:
 test_number = int(sys.argv[1])
 if test_number == 0:
     print(f"[{datetime.now()}] Testing BallTree on first centroid...")
-    dist, ind = tree.query(centroids[0].reshape(1, -1), k=K)
+    dist, ind = tree.query(centroids[0].reshape(1, -1), k=config.clustering.k_nearest_10000)
     print(f"[{datetime.now()}] Nearest neighbors for first centroid obtained.")
 
      #save the indices of the nearest neighbors for all centroids
@@ -51,7 +52,7 @@ if test_number == 0:
 
 elif test_number == 1:
     print(f"[{datetime.now()}] Testing BallTree on all centroids...")
-    dist, ind = tree.query(centroids, k=K)
+    dist, ind = tree.query(centroids, k=config.clustering.k_nearest_10000)
     print(f"[{datetime.now()}] Nearest neighbors for all centroids obtained.")
 
     #save the indices of the nearest neighbors for all centroids
@@ -62,7 +63,7 @@ elif test_number == 1:
 
 elif test_number == 2:
     print(f"[{datetime.now()}] Testing BallTree on all centroids with dual tree algorithm...")
-    dist, ind = tree.query(centroids, k=K, dualtree=True)
+    dist, ind = tree.query(centroids, k=config.clustering.k_nearest_10000, dualtree=True)
     print(f"[{datetime.now()}] Nearest neighbors for all centroids obtained with dual tree algorithm.")
 
     #save the indices of the nearest neighbors for all centroids

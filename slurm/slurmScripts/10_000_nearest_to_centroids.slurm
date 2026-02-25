@@ -10,4 +10,5 @@
 #SBATCH --partition=studentbatch
 
 
-python -u $LLM_PROJ_PATH/scripts/obtain_10000_nearest_to_centroids.py $SLURM_ARRAY_TASK_ID
+python -u $LLM_PROJ_PATH/scripts/obtain_10000_nearest_to_centroids.py $SLURM_ARRAY_TASK_ID \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

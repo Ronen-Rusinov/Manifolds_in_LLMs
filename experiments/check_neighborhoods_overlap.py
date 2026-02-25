@@ -1,20 +1,13 @@
-#This script checks the overlap between the neighborhoods of the different
-#centroids. The script's prerequisits are the outputs of the script obtain_10000_nearest_to_centroids.py
-#And subsequently relies on the output of minibatch_kmeans.py as well as
-#on the output of produce_balltree.py
-
-#Their outputs are stored in 
-#/outputs/Balltree/nearest_neighbors_indices_1.npy
-#/outputs/minibatch_kmeans/centroids.npy
-#and /outputs/Balltree/balltree_layer_18_all_parquets.pkl respectively.
-
-#Here we look at every two 10_000 nearest neighbors of the centroids and check how many of them are shared between the two centroids.
-#Nicely, we don't even need to load the data itself, the array of the indices of the nearest neighbors is enough to check the overlap between the neighborhoods of the centroids.
-
 import numpy as np
 import os
 import pickle
 from tqdm import tqdm
+from src.config_manager import load_config_with_args
+
+# Load configuration with CLI argument overrides
+config = load_config_with_args(
+    description="Check overlap of nearest neighbor neighborhoods between centroids"
+)
 
 #load centroids
 print(f"Loading centroids...")
@@ -85,7 +78,7 @@ else:
 
 #make a nice heatmap of the overlaps
 import matplotlib.pyplot as plt
-plt.figure(figsize=(10, 8))
+plt.figure(figsize=(config.visualization.fig_width_compact, config.visualization.fig_height_compact))
 plt.imshow(overlaps, cmap='magma')
 plt.colorbar(label='Number of shared neighbors')
 plt.title('Overlap of Nearest Neighbors between Centroids')
@@ -95,14 +88,14 @@ heatmap_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 're
 plt.savefig(heatmap_path)
 print(f"Overlap heatmap saved to {heatmap_path}.")
 
-#For each row, make a histogram with 50 bins of the number of shared neighbors between the centroid and the other centroids
+#For each row, make a histogram with N bins of the number of shared neighbors between the centroid and the other centroids
 #plot them all together in a single heatmap, where the x axis is the number of shared neighbors and the y axis is the centroid index
 
-hist_arr = np.zeros((len(centroids), 50), dtype=int)
+hist_arr = np.zeros((len(centroids), config.visualization.histogram_bins), dtype=int)
 for i in range(len(centroids)):
-    hist = np.histogram(overlaps[i], bins=50, range=(0, 10000))
+    hist = np.histogram(overlaps[i], bins=config.visualization.histogram_bins, range=(0, config.clustering.k_nearest_10000))
     hist_arr[i] = hist[0]
-plt.figure(figsize=(10, 8))
+plt.figure(figsize=(config.visualization.fig_width_compact, config.visualization.fig_height_compact))
 plt.imshow(hist_arr, aspect='auto', cmap='viridis')
 plt.colorbar(label='Frequency of shared neighbors')
 plt.title('Histogram of Shared Neighbors for Each Centroid')
@@ -113,8 +106,8 @@ plt.savefig(histogram_path)
 print(f"Overlap histogram heatmap saved to {histogram_path}.")
 
 #Make a histogram of the overlaps
-plt.figure(figsize=(10, 6))
-plt.hist(overlaps_list[:, 2], bins=50, color='blue', alpha=0.7)
+plt.figure(figsize=(config.visualization.fig_width_compact, config.visualization.fig_height_standard))
+plt.hist(overlaps_list[:, 2], bins=config.visualization.histogram_bins, color='blue', alpha=0.7)
 plt.title('Distribution of Shared Neighbors between Centroids')
 plt.xlabel('Number of Shared Neighbors')
 plt.ylabel('Frequency')
@@ -142,7 +135,7 @@ for key in pos:
     x, y = pos[key]
     pos[key] = [-y, x]
 
-plt.figure(figsize=(30, 30))
+plt.figure(figsize=(config.visualization.fig_width_large, config.visualization.fig_height_large))
 for i in range(len(centroids)):
     for j in range(i+1, len(centroids)):
         weight = overlaps[i, j]/10000

@@ -14,8 +14,13 @@ from sklearn.cluster import MiniBatchKMeans
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from utils.load_data import load_all_parquets
+from config_manager import load_config_with_args
 
 def main():
+    # Load configuration with CLI argument overrides
+    config = load_config_with_args(
+        description="Run MiniBatchKMeans clustering on activations"
+    )
     print("Loading all activations...")
     start_time = time.time()
     df = load_all_parquets(timing=True)
@@ -30,20 +35,23 @@ def main():
     # Run MiniBatchKMeans
     print("\nRunning MiniBatchKMeans clustering...")
     print("Parameters:")
-    print(f"  - batch_size: 200000")
-    print(f"  - n_clusters: 1000")
-    print(f"  - random_state: 42")
+    print(f"  - batch_size: {config.data.batch_size}")
+    print(f"  - n_clusters: {config.clustering.n_clusters}")
+    print(f"  - random_state: {config.training.random_seed}")
+    print(f"  - max_iter: {config.training.epochs}")
+    print(f"  - max_no_improvement: {config.training.patience}")
+    print(f"  - reassignment_ratio: {config.clustering.kmeans_reassignment_ratio}")
     
     start_time = time.time()
     kmeans = MiniBatchKMeans(
-        n_clusters=1000,
-        batch_size=200_000,
-        random_state=42,
-        verbose=10,
-        n_init=3,
-        max_iter=300,
-        max_no_improvement=30, 
-        reassignment_ratio=0.05
+        n_clusters=config.clustering.n_clusters,
+        batch_size=config.data.batch_size,
+        random_state=config.training.random_seed,
+        verbose=config.clustering.kmeans_verbose,
+        n_init=config.clustering.kmeans_n_init,
+        max_iter=config.training.epochs,
+        max_no_improvement=config.training.patience, 
+        reassignment_ratio=config.clustering.kmeans_reassignment_ratio
 
     )
     kmeans.fit(activations)
@@ -52,7 +60,7 @@ def main():
     print(f"Inertia: {kmeans.inertia_:.4f}")
     
     #save centroids
-    centroids_path = Path(__file__).parent.parent / "results" / "minibatch_kmeans_1000" / "centroids_1000.npy"
+    centroids_path = Path(__file__).parent.parent / "results" / f"minibatch_kmeans_{config.clustering.n_clusters}" / f"centroids_{config.clustering.n_clusters}.npy"
     #if directory doesn't exist, create it
     centroids_path.parent.mkdir(parents=True, exist_ok=True)
     np.save(centroids_path, kmeans.cluster_centers_)
@@ -64,9 +72,9 @@ def main():
         print(f"  - {param}: {value}")
     
     #save params
-    output_dir = Path(__file__).parent.parent / "results" / "minibatch_kmeans_1000"
+    output_dir = Path(__file__).parent.parent / "results" / f"minibatch_kmeans_{config.clustering.n_clusters}"
     output_dir.mkdir(parents=True, exist_ok=True)
-    params_path = output_dir / "kmeans_params_1000.txt"
+    params_path = output_dir / f"kmeans_params_{config.clustering.n_clusters}.txt"
     with open(params_path, "w") as f:
         f.write("MiniBatchKMeans Parameters\n")
         f.write("=" * 30 + "\n")
@@ -75,7 +83,7 @@ def main():
     print(f"Parameters saved to {params_path}")
     
     # Create a summary file
-    summary_path = output_dir / "summary_1000.txt"
+    summary_path = output_dir / f"summary_{config.clustering.n_clusters}.txt"
     with open(summary_path, "w") as f:
         f.write("MiniBatchKMeans Results\n")
         f.write("=" * 50 + "\n\n")

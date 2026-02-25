@@ -8,4 +8,5 @@
 #SBATCH --mem=50GB
 #SBATCH --partition=studentbatch
 
-python -u $LLM_PROJ_PATH/experiments/check_neighborhoods_overlap.py
+python -u $LLM_PROJ_PATH/experiments/check_neighborhoods_overlap.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

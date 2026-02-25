@@ -12,6 +12,7 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from guided_autoencoder import GuidedAutoencoder
 from utils import load_data
+from config_manager import load_config_with_args
 
 
 def to_tensor(array, device):
@@ -19,21 +20,26 @@ def to_tensor(array, device):
 
 
 if __name__ == "__main__":
+    # Load configuration with CLI argument overrides
+    config = load_config_with_args(
+        description="Train guided autoencoder with Isomap pretraining"
+    )
+    
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    latent_dim = 12
-    pretrain_epochs = 200
-    finetune_epochs = 300
-    learning_rate = 1e-3
+    latent_dim = config.model.latent_dim
+    pretrain_epochs = config.training.pretrain_epochs
+    finetune_epochs = config.training.epochs
+    learning_rate = config.training.learning_rate
 
     dataframes = load_data.load_train_test_val_first_parquet(
-        train_size=0.7,
-        val_size=0.2,
+        train_size=config.data.test_train_split,
+        val_size=config.data.val_fraction,
         timing=True,
     )
 
     train_data, val_data, _ = dataframes
-    pretrain_data = train_data.sample(frac=0.5, random_state=42)
-    pretrain_val = val_data.sample(frac=0.2, random_state=42)
+    pretrain_data = train_data.sample(frac=config.data.train_fraction, random_state=config.training.random_seed)
+    pretrain_val = val_data.sample(frac=config.data.val_fraction, random_state=config.training.random_seed)
 
     train_data = train_data[~train_data.index.isin(pretrain_data.index)]
     val_data = val_data[~val_data.index.isin(pretrain_val.index)]

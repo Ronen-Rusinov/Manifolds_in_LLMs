@@ -8,5 +8,5 @@
 #SBATCH --mem=200GB
 #SBATCH --partition=studentbatch
 
-python -u $LLM_PROJ_PATH/scripts/train_and_save_isomap_12D.py
-    
+python -u $LLM_PROJ_PATH/scripts/train_and_save_isomap_12D.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

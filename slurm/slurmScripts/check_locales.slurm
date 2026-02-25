@@ -8,4 +8,5 @@
 #SBATCH --mem=50GB
 #SBATCH --partition=studentbatch
 
-python -u $LLM_PROJ_PATH/experiments/check_locales_test.py
+python -u $LLM_PROJ_PATH/experiments/check_locales_test.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

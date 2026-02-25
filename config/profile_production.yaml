@@ -1,0 +1,93 @@
+# Production Profile - Optimized Parameters for Full-Scale Runs
+# This profile uses the standard defaults with optional optimizations
+# Use: python script.py --config config/profile_production.yaml
+
+model:
+  latent_dim: 12             # Standard 12D latent space
+  latent_dim_2d: 2
+  latent_dim_3d: 3
+  latent_dim_4d: 4
+  layer_for_activation: 18
+  layer_alternative: 6
+  balltree_leaf_size: 40
+  procrustes_test_dim: 2304
+
+training:
+  epochs: 300                # Standard training epochs
+  epochs_extended: 1000      # Extended training epochs
+  pretrain_epochs: 200       # Pretraining epochs
+  learning_rate: 1.0e-3      # Standard learning rate
+  learning_rate_alt: 3.0e-3  # Alternative (higher) learning rate
+  patience: 20               # Standard early stopping patience
+  patience_extended: 50      # Extended patience
+  regularization_weight: 0.1 # L2 regularization
+  noise_level: 0.05
+  accumulation_steps: 6      # Memory-efficient gradient accumulation
+  random_seed: 42
+
+clustering:
+  n_centroids: 200           # Full 200 centroid set
+  n_clusters: 200            # MiniBatchKMeans clusters
+  k_nearest_neighbors: 20    # Standard k-nearest
+  k_neighbors_isomap: 10     # Isomap neighbors
+  k_neighbors_isomap_alt: 10
+  k_neighbors_3d: 50
+  k_neighbors_4d: 30
+  k_nearest_10000: 10000     # Large-scale nearest neighbors
+  k_nearest_1000: 1000
+  kmeans_n_init: 3           # Multiple initializations
+  kmeans_verbose: 10
+  kmeans_reassignment_ratio: 0.05
+
+data:
+  batch_size: 200000         # Standard batch size
+  train_fraction: 0.5        # Use 50% of data for training
+  val_fraction: 0.2          # Use 20% for validation
+  test_train_split: 0.7
+  n_samples_synthetic: 1000
+  n_samples_locality: 10
+  n_samples_visualization: 5000
+  n_samples_base: 5
+  procrustes_n_samples: 5000
+
+dimensionality:
+  n_components: 12           # Standard 12 components
+  n_neighbors: 50            # Standard neighbors for manifold learning
+  n_neighbors_alt: 10
+  n_components_2d: 2
+  n_components_3d: 3
+  n_components_4d: 4
+
+text:
+  first_n_words: 20          # Standard context window
+  last_n_words: 20
+  first_n_tokens_isomap: 5
+  last_n_tokens_isomap: 10
+
+visualization:
+  fig_width_standard: 12
+  fig_height_standard: 6
+  fig_width_compact: 10
+  fig_height_compact: 8
+  fig_width_large: 30
+  fig_height_large: 30
+  histogram_bins: 50         # Standard histogram resolution
+  histogram_bins_alt: 100
+  dim_2d: 2
+  dim_3d: 3
+  dim_4d: 4
+
+numerical:
+  zero_threshold: 1.0e-5
+  sentinel_value: -1
+  pca_max_samples: 100
+
+synthetic_data:
+  noise_level: 0.05
+  n_noise_dims: 2302
+  n_data_dims: 2
+  n_total_dims: 2304
+
+logging:
+  log_interval: 1
+  verbose_level: 10

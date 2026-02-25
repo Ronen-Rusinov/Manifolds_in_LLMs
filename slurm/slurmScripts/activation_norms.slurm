@@ -8,4 +8,5 @@
 #SBATCH --mem=30GB
 #SBATCH --partition=studentbatch
 
-python -u $LLM_PROJ_PATH/experiments/activation_norms.py
+python -u $LLM_PROJ_PATH/experiments/activation_norms.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

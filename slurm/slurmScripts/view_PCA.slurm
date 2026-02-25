@@ -8,4 +8,5 @@
 #SBATCH --mem=80GB
 #SBATCH --partition=studentbatch
 
-python -u $LLM_PROJ_PATH/experiments/PCA_interpretation.py
+python -u $LLM_PROJ_PATH/experiments/PCA_interpretation.py \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

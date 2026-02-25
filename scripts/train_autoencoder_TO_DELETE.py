@@ -12,13 +12,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from utils.load_data import load_train_test_val_all_parquets, load_all_parquets
 from standard_autoencoder import StandardAutoencoder
+from config_manager import load_config_with_args
 
 def main():
+    # Load configuration with CLI argument overrides
+    config = load_config_with_args(
+        description="Train standard autoencoder with early stopping"
+    )
     print("Loading all activations...")
     start_time = time.time()
     train_df,val_df,test_df = load_train_test_val_all_parquets(timing=True)
-    train_df = test_df.sample(frac=0.5, random_state=42)  # Use only 50% of the training data Cause otherwise GPU explodes
-    val_df = val_df.sample(frac=0.5, random_state=42)  # Use only 50% of the validation data 
+    train_df = test_df.sample(frac=config.data.train_fraction, random_state=config.training.random_seed)  # Use only specified fraction of training data
+    val_df = val_df.sample(frac=config.data.train_fraction, random_state=config.training.random_seed)  # Use only specified fraction of validation data 
     print(f"Total time to load: {time.time() - start_time:.2f}s")
     print(f"Train DataFrame shape: {train_df.shape}")
     print(f"Validation DataFrame shape: {val_df.shape}")
@@ -40,7 +45,7 @@ def main():
     
     # Initialize and train the autoencoder
     input_dim = train_activations.shape[1]
-    latent_dim = 12 
+    latent_dim = config.model.latent_dim
     print(f"Initializing StandardAutoencoder with input_dim={input_dim} and latent_dim={latent_dim}")
     autoencoder = StandardAutoencoder(input_dim=input_dim, latent_dim=latent_dim, device='cuda' if torch.cuda.is_available() else 'cpu', dtype=torch.float16)
 
@@ -51,7 +56,7 @@ def main():
     print(f"Train tensor shape: {train_tensor.shape}, dtype: {train_tensor.dtype}")
     val_tensor = torch.from_numpy(val_activations).to(autoencoder.device)
     print(f"Validation tensor shape: {val_tensor.shape}, dtype: {val_tensor.dtype}")
-    autoencoder.train(train_tensor, val_data=val_tensor, num_epochs=300, learning_rate=1e-3, patience=20)
+    autoencoder.train(train_tensor, val_data=val_tensor, num_epochs=config.training.epochs, learning_rate=config.training.learning_rate, patience=config.training.patience)
     
     #remove the train and val data from gpu memory
     del train_tensor
@@ -69,7 +74,7 @@ def main():
     print(f"Standard deviation of reconstruction error on test set: {reconstruction_errors_std:.6f}")
 
     import matplotlib.pyplot as plt
-    plt.hist(reconstruction_errors, bins=50)
+    plt.hist(reconstruction_errors, bins=config.visualization.histogram_bins)
     plt.title(f"Reconstruction Error Distribution on Test Set - Mean: {reconstruction_errors_mean:.6f}, Std: {reconstruction_errors_std:.6f}")
     plt.xlabel("Reconstruction Error (MSE)")
     plt.ylabel("Frequency")

@@ -1,0 +1,93 @@
+# Quick Test Profile - Reduced Parameters for Fast Development Testing
+# This profile is designed for rapid iteration and debugging
+# Use: python script.py --config config/profile_quick_test.yaml
+
+model:
+  latent_dim: 4              # Smaller for faster computation
+  latent_dim_2d: 2
+  latent_dim_3d: 3
+  latent_dim_4d: 4
+  layer_for_activation: 18
+  layer_alternative: 6
+  balltree_leaf_size: 40
+  procrustes_test_dim: 2304
+
+training:
+  epochs: 10                 # Minimal epochs for testing
+  epochs_extended: 50        # Reduced extended epochs
+  pretrain_epochs: 5         # Minimal pretraining
+  learning_rate: 1.0e-3
+  learning_rate_alt: 3.0e-3
+  patience: 5                # Aggressive early stopping
+  patience_extended: 10      # Reduced extended patience
+  regularization_weight: 0.1
+  noise_level: 0.05
+  accumulation_steps: 2      # Reduced gradient accumulation
+  random_seed: 42
+
+clustering:
+  n_centroids: 50            # Much smaller centroid set
+  n_clusters: 50             # Smaller cluster count
+  k_nearest_neighbors: 5     # Reduced k
+  k_neighbors_isomap: 5      # Reduced Isomap k
+  k_neighbors_isomap_alt: 5
+  k_neighbors_3d: 10
+  k_neighbors_4d: 8
+  k_nearest_10000: 500       # Reduced for speed
+  k_nearest_1000: 250
+  kmeans_n_init: 1           # Single initialization
+  kmeans_verbose: 10
+  kmeans_reassignment_ratio: 0.05
+
+data:
+  batch_size: 50000          # Smaller batches
+  train_fraction: 0.1        # Use only 10% of data
+  val_fraction: 0.05         # Smaller validation set
+  test_train_split: 0.7
+  n_samples_synthetic: 100   # Minimal synthetic samples
+  n_samples_locality: 5      # Minimal locality samples
+  n_samples_visualization: 500  # Reduced for speed
+  n_samples_base: 2
+  procrustes_n_samples: 500
+
+dimensionality:
+  n_components: 4            # Reduced components
+  n_neighbors: 10            # Reduced neighbors
+  n_neighbors_alt: 5
+  n_components_2d: 2
+  n_components_3d: 3
+  n_components_4d: 4
+
+text:
+  first_n_words: 5           # Fewer words for speed
+  last_n_words: 5
+  first_n_tokens_isomap: 2
+  last_n_tokens_isomap: 3
+
+visualization:
+  fig_width_standard: 8
+  fig_height_standard: 4
+  fig_width_compact: 6
+  fig_height_compact: 4
+  fig_width_large: 12
+  fig_height_large: 12
+  histogram_bins: 20         # Fewer bins
+  histogram_bins_alt: 30
+  dim_2d: 2
+  dim_3d: 3
+  dim_4d: 4
+
+numerical:
+  zero_threshold: 1.0e-5
+  sentinel_value: -1
+  pca_max_samples: 20
+
+synthetic_data:
+  noise_level: 0.05
+  n_noise_dims: 2302
+  n_data_dims: 2
+  n_total_dims: 2304
+
+logging:
+  log_interval: 1
+  verbose_level: 10

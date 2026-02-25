@@ -1,17 +1,3 @@
-#This script check to confirm wether or not the overlaps in the embeddings are
-#Indeed isometries. I.E, if the overlap between centroid A and centroid B, 
-#Corresponds to embeddings which can be rigidly mapped to each other in 12D.
-
-#The script's prerequisits are the outputs of the script obtain_10000_nearest_to_centroids.py
-#And subsequently relies on the output of minibatch_kmeans.py as well as
-#on the output of produce_balltree.py, as well as the outputs of isomap_for_each_centroid.py
-
-#Their outputs are stored in 
-#/results/Balltree/nearest_neighbors_indices_1.npy
-#/results/minibatch_kmeans/centroids.npy
-#/results/Balltree/balltree_layer_18_all_parquets.pkl
-#and /results/iso_atlas/12D/centroid_[0000-0199]_embeddings_12D.npy respectively.
-
 import os
 import sys
 import time
@@ -21,8 +7,14 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from utils.load_data import load_all_parquets
+from config_manager import load_config_with_args
 import numpy as np
 from rigid_procrustes import impose_X_on_Y, procrustes
+
+# Load configuration with CLI argument overrides
+config = load_config_with_args(
+    description="Check if overlapping neighborhoods can be rigidly aligned in embedding space"
+)
 
 def load_centroids():
     """Load centroids from minibatch_kmeans."""
@@ -44,7 +36,7 @@ def load_activations():
     """Load all activation vectors and corresponding prompts."""
     print(f"[{datetime.now()}] Loading all activations and prompts...", flush=True)
     df = load_all_parquets(timing=True)
-    activations = np.array(df['activation_layer_18'].tolist(), dtype=np.float32)
+    activations = np.array(df[f'activation_layer_{config.model.layer_for_activation}'].tolist(), dtype=np.float32)
     print(f"[{datetime.now()}] Activations loaded. Shape: {activations.shape}", flush=True)
     return activations
 
@@ -52,7 +44,7 @@ def load_isomap_embeddings(centroid_index):
     """Load Isomap embeddings for a specific centroid."""
     #pretty format the centroid index to be 4 digits with leading zeros
     centroid_index_str = f"{centroid_index:04d}"
-    embeddings_path = Path(__file__).parent.parent / "results" / "iso_atlas" / "12D" / f"centroid_{centroid_index_str}_embeddings_12D.npy"
+    embeddings_path = Path(__file__).parent.parent / "results" / "iso_atlas" / f"{config.dimensionality.n_components}D" / f"centroid_{centroid_index_str}_embeddings_{config.dimensionality.n_components}D.npy"
     print(f"[{datetime.now()}] Loading Isomap embeddings for centroid {centroid_index} from {embeddings_path}...", flush=True)
     embeddings = np.load(embeddings_path)
     print(f"[{datetime.now()}] Isomap embeddings loaded for centroid {centroid_index}. Shape: {embeddings.shape}", flush=True)
@@ -63,18 +55,18 @@ def main():
     neighbor_indices = load_neighbor_indices()
     activations = load_activations()
 
-    #have -1 indicate a skipped pair due to insufficient common neighbors, and initialize the alignment distances matrix
+    #have sentinel value indicate a skipped pair due to insufficient common neighbors, and initialize the alignment distances matrix
     os.makedirs(Path(__file__).parent.parent / "results" / "mapping_alignment", exist_ok=True)
-    alignment_distances = np.full((200, 200), -1.0, dtype=np.float32)
-    alignment_distances_before_alignment = np.full((200, 200), -1.0, dtype=np.float32)
+    alignment_distances = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
+    alignment_distances_before_alignment = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
 
     #preload all embeddings into memory to avoid repeated disk access during the pairwise comparisons
     all_embeddings = {}
-    for i in range(200):
+    for i in range(config.clustering.n_centroids):
         all_embeddings[i] = load_isomap_embeddings(i)
 
-    for i in range(200):
-        for j in range(i+1, 200):
+    for i in range(config.clustering.n_centroids):
+        for j in range(i+1, config.clustering.n_centroids):
             print(f"[{datetime.now()}] Processing centroid pair ({i}, {j})...", flush=True)
             #Get the nearest neighbor indices for centroids i and j
             indices_i = neighbor_indices[i]
@@ -93,7 +85,7 @@ def main():
             indices_j_set = set(indices_j)
             common_indices = list(indices_i_set.intersection(indices_j_set))
 
-            if len(common_indices) <= 20:
+            if len(common_indices) <= config.clustering.k_nearest_neighbors:
                 print(f"[{datetime.now()}] Skipping centroid pair ({i}, {j}) due to insufficient common neighbors ({len(common_indices)}).", flush=True)
                 continue
             
@@ -159,14 +151,14 @@ def main():
 
     #save a heatmap of the alignment distances matrix before and after alignment for visual comparison
     import matplotlib.pyplot as plt
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(config.visualization.fig_width_standard, config.visualization.fig_height_standard))
     plt.subplot(1, 2, 1)
     plt.imshow(alignment_distances_before_alignment, cmap='viridis')
     plt.colorbar()
     plt.title("Mean Distance Before Alignment")
 
     #mark with red the pairs that were skipped due to insufficient common neighbors
-    skipped_pairs = np.where(alignment_distances_before_alignment == -1)
+    skipped_pairs = np.where(alignment_distances_before_alignment == config.numerical.sentinel_value)
     plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
 
     plt.subplot(1, 2, 2)
@@ -175,7 +167,7 @@ def main():
     plt.title("Mean Distance After Alignment")
 
     #mark with red the pairs that were skipped due to insufficient common neighbors
-    skipped_pairs = np.where(alignment_distances == -1)
+    skipped_pairs = np.where(alignment_distances == config.numerical.sentinel_value)
     plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
 
     heatmap_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / "alignment_distances_heatmap.png"

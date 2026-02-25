@@ -10,6 +10,10 @@ import os
 from pathlib import Path
 import pandas as pd
 import time
+from config_manager import load_config
+
+#Load config for default values
+_config = load_config()
 
 #PLEASE NOTE THOSE TWO ARE NOT STRINGS. If you want to pass them as arguments, stringify them first, will save you a headache.
 
@@ -44,21 +48,25 @@ def load_all_parquets(timing=False):
     combined_df = pd.concat(dataframes, ignore_index=True)
     return combined_df
 
-def load_train_test_first_parquet(train_size= 0.8, timing=False):
+def load_train_test_first_parquet(train_size=None, timing=False):
+    if train_size is None:
+        train_size = _config.data.train_fraction
     if not FIRST_PARQUET_PATH.exists():
         raise FileNotFoundError(f"First parquet file not found at {FIRST_PARQUET_PATH}. Please run pull_data.py to download the data.")
     start_time = time.time()
     df = pd.read_parquet(FIRST_PARQUET_PATH)
     if timing:
         print(f"Time to load first parquet: {time.time() - start_time}")
-    shuffled_df = df.sample(frac=1, random_state=42)
+    shuffled_df = df.sample(frac=1, random_state=_config.training.random_seed)
     train_df = shuffled_df.iloc[:int(train_size * len(shuffled_df))]
     test_df = shuffled_df.iloc[int(train_size * len(shuffled_df)):]
     if timing:
         print(f"Time to split train/test: {time.time() - start_time}")
     return train_df, test_df
 
-def load_train_test_all_parquets(train_size= 0.8, timing=False):
+def load_train_test_all_parquets(train_size=None, timing=False):
+    if train_size is None:
+        train_size = _config.data.train_fraction
     parquet_files = sorted(DATAPATH.glob("activations_part_*.parquet"))
     if not parquet_files:
         raise FileNotFoundError(f"No parquet files found in {DATAPATH}. Please run pull_data.py to download the data.")
@@ -71,21 +79,25 @@ def load_train_test_all_parquets(train_size= 0.8, timing=False):
             print(f"Time to load {parquet_file}: {time.time() - start_time}")
         dataframes.append(df)
     combined_df = pd.concat(dataframes, ignore_index=True)
-    shuffled_df = combined_df.sample(frac=1, random_state=42)
+    shuffled_df = combined_df.sample(frac=1, random_state=_config.training.random_seed)
     train_df = shuffled_df.iloc[:int(train_size * len(shuffled_df))]
     test_df = shuffled_df.iloc[int(train_size * len(shuffled_df)):]
     if timing:
         print(f"Time to split train/test: {time.time() - start_time}")
     return train_df, test_df
 
-def load_train_test_val_first_parquet(train_size= 0.7, val_size= 0.2, timing=False):
+def load_train_test_val_first_parquet(train_size=None, val_size=None, timing=False):
+    if train_size is None:
+        train_size = _config.data.train_fraction
+    if val_size is None:
+        val_size = _config.data.val_fraction
     if not FIRST_PARQUET_PATH.exists():
         raise FileNotFoundError(f"First parquet file not found at {FIRST_PARQUET_PATH}. Please run pull_data.py to download the data.")
     start_time = time.time()
     df = pd.read_parquet(FIRST_PARQUET_PATH)
     if timing:
         print(f"Time to load first parquet: {time.time() - start_time}")
-    shuffled_df = df.sample(frac=1, random_state=42)
+    shuffled_df = df.sample(frac=1, random_state=_config.training.random_seed)
     train_end = int(train_size * len(shuffled_df))
     val_end = train_end + int(val_size * len(shuffled_df))
     train_df = shuffled_df.iloc[:train_end]
@@ -95,7 +107,11 @@ def load_train_test_val_first_parquet(train_size= 0.7, val_size= 0.2, timing=Fal
         print(f"Time to split train/val/test: {time.time() - start_time}")
     return train_df, val_df, test_df
 
-def load_train_test_val_all_parquets(train_size= 0.7, val_size= 0.2, timing=False):
+def load_train_test_val_all_parquets(train_size=None, val_size=None, timing=False):
+    if train_size is None:
+        train_size = _config.data.train_fraction
+    if val_size is None:
+        val_size = _config.data.val_fraction
     parquet_files = sorted(DATAPATH.glob("activations_part_*.parquet"))
     if not parquet_files:
         raise FileNotFoundError(f"No parquet files found in {DATAPATH}. Please run pull_data.py to download the data.")
@@ -108,7 +124,7 @@ def load_train_test_val_all_parquets(train_size= 0.7, val_size= 0.2, timing=Fals
             print(f"Time to load {parquet_file}: {time.time() - start_time}")
         dataframes.append(df)
     combined_df = pd.concat(dataframes, ignore_index=True)
-    shuffled_df = combined_df.sample(frac=1, random_state=42)
+    shuffled_df = combined_df.sample(frac=1, random_state=_config.training.random_seed)
     train_end = int(train_size * len(shuffled_df))
     val_end = train_end + int(val_size * len(shuffled_df))
     train_df = shuffled_df.iloc[:train_end]

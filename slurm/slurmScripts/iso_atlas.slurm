@@ -23,4 +23,5 @@ fi
 
 echo "Running Isomap for centroids in range: ${SLURM_ARRAY_TASK_ID} to $((${SLURM_ARRAY_TASK_ID} + 40))"
 echo "Args: ${ARGS[*]}"
-python -u $LLM_PROJ_PATH/scripts/isomap_for_each_centroid.py "${ARGS[@]}"
+python -u $LLM_PROJ_PATH/scripts/isomap_for_each_centroid.py "${ARGS[@]}" \
+  --config $LLM_PROJ_PATH/config/profile_production.yaml

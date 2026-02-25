@@ -11,8 +11,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from utils.load_data import load_train_test_val_all_parquets, load_all_parquets
 from standard_autoencoder_memory_efficient import MemoryEfficientAutoencoder
+from config_manager import load_config_with_args
 
 def main():
+    # Load configuration with CLI argument overrides
+    config = load_config_with_args(
+        description="Train autoencoder with native PyTorch gradient accumulation"
+    )
     print("Loading all activations...")
     start_time = time.time()
     train_df, val_df, test_df = load_train_test_val_all_parquets(timing=True)
@@ -38,7 +43,7 @@ def main():
     
     # Initialize the memory-efficient autoencoder with float32
     input_dim = train_activations.shape[1]
-    latent_dim = 12 
+    latent_dim = config.model.latent_dim
     print(f"Initializing MemoryEfficientAutoencoder with input_dim={input_dim} and latent_dim={latent_dim}")
     autoencoder = MemoryEfficientAutoencoder(
         input_dim=input_dim, 
@@ -54,10 +59,10 @@ def main():
     autoencoder.train_with_accumulation(
         data=train_activations,      # Keep on CPU, loaded to GPU in batches
         val_data=val_activations,    # Keep on CPU, loaded to GPU in batches
-        num_epochs=1000,
-        learning_rate=5*1e-3,
-        patience=50,
-        accumulation_steps=6  # Split data into 6 partitions
+        num_epochs=config.training.epochs_extended,
+        learning_rate=config.training.learning_rate_alt,
+        patience=config.training.patience_extended,
+        accumulation_steps=config.training.accumulation_steps  # Split data into 6 partitions
     )
 
     print("Training complete!")
@@ -66,7 +71,7 @@ def main():
     print("Evaluating on test set...")
     reconstructions = autoencoder.predict_in_batches(
         test_activations, 
-        accumulation_steps=6
+        accumulation_steps=config.training.accumulation_steps
     )
     
     # Calculate reconstruction errors
@@ -78,7 +83,7 @@ def main():
 
     # Save histogram
     import matplotlib.pyplot as plt
-    plt.hist(reconstruction_errors, bins=100)
+    plt.hist(reconstruction_errors, bins=config.visualization.histogram_bins_alt)
     plt.title(f"Reconstruction Error Distribution on Test Set\nMean: {reconstruction_errors_mean:.6f}, Std: {reconstruction_errors_std:.6f}")
     plt.xlabel("Reconstruction Error (MSE)")
     plt.ylabel("Frequency")
