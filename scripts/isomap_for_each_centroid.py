@@ -53,7 +53,7 @@ if args.visualise_every is not None:
     config.visualization.visualise_every_n_centroids = args.visualise_every
 
 # Configuration from config object
-N_NEIGHBORS = config.clustering.k_neighbors_isomap
+N_NEIGHBORS_ISOMAP = config.clustering.k_neighbors_isomap
 K_NEAREST = config.clustering.n_neighbors
 DEFAULT_N_COMPONENTS = config.dimensionality.n_components
 N_COMPONENTS_3D = config.dimensionality.n_components_3d
@@ -148,7 +148,7 @@ def process_all_centroids(
             neighborhood_activations, 
             neighbor_idx, 
             n_components, 
-            N_NEIGHBORS
+            N_NEIGHBORS_ISOMAP
         )
         
         # Save main results
@@ -180,7 +180,7 @@ def process_all_centroids(
                     sampled_activations_3d,
                     sample_indices_3d,
                     N_COMPONENTS_3D,
-                    min(config.clustering.k_neighbors_3d, sample_size_3d - 1)
+                    min(N_NEIGHBORS_3D, sample_size_3d - 1)
                 )
                     
                 # Save 3D results
