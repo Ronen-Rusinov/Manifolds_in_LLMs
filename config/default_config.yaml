@@ -49,8 +49,7 @@ training:
 # ============================================================================
 clustering:
   # Counts
-  n_centroids: 200            # Number of centroids / centroid matrix dimension
-  n_clusters: 200            # Number of clusters (MiniBatchKMeans)
+  n_centroids: 200            # Number of centroids from MinibatchKMeans
   
   # K-nearest neighbors
   k_neighbors_3d: 5000         # Min neighbors for 3D Isomap sampling
@@ -89,8 +88,7 @@ data:
 # ============================================================================
 dimensionality:
   n_components: 12            # Primary number of components (Isomap/PCA)
-  n_neighbors: 50             # Number of neighbors for manifold learning
-  n_neighbors_alt: 10         # Alternative number of neighbors
+  n_neighbors: 10             # Number of neighbors for manifold learning
   
   # Visualization
   n_components_2d: 2          # Components for 2D visualization (visualization only)

@@ -76,7 +76,6 @@ class DimensionalityConfig:
     """Dimensionality reduction parameters."""
     n_components: int = 12
     n_neighbors: int = 10
-    n_neighbors_alt: int = 10
     n_components_2d: int = 2
     n_components_3d: int = 3
     n_components_4d: int = 4

@@ -26,8 +26,7 @@ training:
   random_seed: 42
 
 clustering:
-  n_centroids: 200           # Full 200 centroid set
-  n_clusters: 200            # MiniBatchKMeans clusters
+  n_centroids: 200           # Minibatch k-means with 200 centroids
   k_neighbors_3d: 5000
   k_neighbors_4d: 3000
   k_nearest_large: 10000     # Large-scale nearest neighbors
@@ -49,7 +48,6 @@ data:
 dimensionality:
   n_components: 12           # Standard 12 components
   n_neighbors: 10            # Standard neighbors for manifold learning
-  n_neighbors_alt: 10
   n_components_2d: 2
   n_components_3d: 3
   n_components_4d: 4

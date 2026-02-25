@@ -49,8 +49,24 @@ if args.n_neighbors_isomap is not None:
 
 def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_neighbors_isomap):
     """Apply Isomap to a neighborhood of activations."""
-    isomap = Isomap(n_neighbors=n_neighbors_isomap, n_components=n_components, n_jobs=-1)
+    # Diagnostic checks
+    print(f"[{datetime.now()}] Isomap input shape: {activations.shape}", flush=True)
+    print(f"[{datetime.now()}] Isomap n_neighbors: {n_neighbors_isomap}, n_components: {n_components}", flush=True)
+    print(f"[{datetime.now()}] Activation stats - min: {activations.min():.6f}, max: {activations.max():.6f}, mean: {activations.mean():.6f}", flush=True)
+    print(f"[{datetime.now()}] Contains NaN: {np.isnan(activations).any()}, Contains Inf: {np.isinf(activations).any()}", flush=True)
+    
+    # Ensure n_neighbors doesn't exceed number of samples
+    n_neighbors_safe = min(n_neighbors_isomap, activations.shape[0] - 1)
+    if n_neighbors_safe != n_neighbors_isomap:
+        print(f"[{datetime.now()}] Warning: Reducing n_neighbors from {n_neighbors_isomap} to {n_neighbors_safe} (only {activations.shape[0]} samples)", flush=True)
+    
+    isomap = Isomap(n_neighbors=n_neighbors_safe, n_components=n_components, n_jobs=-1)
     embeddings = isomap.fit_transform(activations)
+    
+    print(f"[{datetime.now()}] Isomap output shape: {embeddings.shape}", flush=True)
+    print(f"[{datetime.now()}] Embeddings stats - min: {embeddings.min():.6f}, max: {embeddings.max():.6f}, mean: {embeddings.mean():.6f}", flush=True)
+    print(f"[{datetime.now()}] Output contains NaN: {np.isnan(embeddings).any()}, Contains Inf: {np.isinf(embeddings).any()}", flush=True)
+    
     return embeddings, isomap
 
 def get_text_snippet(text, config, first_n=None, last_n=None):
@@ -134,7 +150,7 @@ def process_all_centroids(
             neighborhood_activations, 
             neighbor_idx, 
             n_components, 
-            config.dimensionality.n_neighbors_isomap
+            config.dimensionality.n_neighbors
         )
         
         # Save main results
@@ -147,7 +163,7 @@ def process_all_centroids(
         #delete isomap_main to free memory before next Isomap runs
         del isomap_main
         
-        if i % VISUALISE_EVERY == 0:
+        if i % config.visualization.visualise_every_n_centroids == 0:
             print(f"[{datetime.now()}] Processed {i + 1} centroids so far...", flush=True)
             embeddings_3d = None
             embeddings_4d = None
@@ -165,8 +181,8 @@ def process_all_centroids(
                 embeddings_3d, isomap_3d = apply_isomap_to_neighborhood(
                     sampled_activations_3d,
                     sample_indices_3d,
-                    config.visualization.n_components_3d,
-                    min(config.visualization.n_neighbors_3d, sample_size_3d - 1)
+                    3,
+                    10
                 )
                     
                 # Save 3D results
@@ -186,12 +202,13 @@ def process_all_centroids(
                 sample_size_4d = min(config.visualization.n_samples_visualization * 1000, len(neighborhood_activations))
                 sample_indices_4d = np.random.choice(len(neighborhood_activations), sample_size_4d, replace=False)
                 sampled_activations_4d = neighborhood_activations[sample_indices_4d]
+                print(f"[{datetime.now()}] Sample 4D activations shape: {sampled_activations_4d.shape}", flush=True)
                 
                 embeddings_4d, isomap_4d = apply_isomap_to_neighborhood(
                     sampled_activations_4d,
                     sample_indices_4d,
-                    config.visualization.n_components_4d,
-                    min(config.visualization.n_neighbors_4d, sample_size_4d - 1)
+                    4,
+                    10
                 )
                     
                 # Save 4D results
@@ -225,73 +242,90 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
     For 3D: projects to 2D (x, y) with z represented by color.
     For 4D: projects to 3D (x, y, z) with w represented by color.
     """
-    if embeddings_3d is not None and prompts_3d is not None:
-        # Create text snippets for hover
-        hover_text_3d = [get_text_snippet(p, config) for p in prompts_3d]
-        
-        # 3D Interactive visualization (2D plot with color for 3rd dimension)
-        fig_3d = go.Figure(data=go.Scatter(
-            x=embeddings_3d[:, 0],
-            y=embeddings_3d[:, 1],
-            mode='markers',
-            marker=dict(
-                size=6,
-                color=embeddings_3d[:, 2],
-                colorscale='Sunsetdark',
-                showscale=True,
-                colorbar=dict(title="Component 3"),
-                opacity=0.7
-            ),
-            text=hover_text_3d,
-            hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 3:</b> %{marker.color:.3f}<extra></extra>',
-        ))
-        fig_3d.update_layout(
-            title=f"3D Isomap Embeddings (2D projection + color) - Centroid {centroid_idx}",
-            xaxis_title="Component 1",
-            yaxis_title="Component 2",
-            hovermode='closest',
-            width=config.visualization.fig_width_large,
-            height=config.visualization.fig_height_large
-        )
-        html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
-        fig_3d.write_html(str(html_3d_path))
-        print(f"[{datetime.now()}] 3D interactive HTML saved to {html_3d_path}", flush=True)
+    def filter_valid_data(embeddings, prompts):
+        """Filter out rows with NaN or Inf values."""
+        valid_mask = np.isfinite(embeddings).all(axis=1)
+        return embeddings[valid_mask], [prompts[i] for i in range(len(prompts)) if valid_mask[i]]
     
-    if embeddings_4d is not None and prompts_4d is not None:
-        # Create text snippets for hover
-        hover_text_4d = [get_text_snippet(p, config) for p in prompts_4d]
+    if embeddings_3d is not None and prompts_3d is not None:
+        # Filter out invalid data
+        embeddings_3d, prompts_3d = filter_valid_data(embeddings_3d, prompts_3d)
         
-        # 4D Interactive visualization (3D plot with color for 4th dimension)
-        fig_4d = go.Figure(data=go.Scatter3d(
-            x=embeddings_4d[:, 0],
-            y=embeddings_4d[:, 1],
-            z=embeddings_4d[:, 2],
-            mode='markers',
-            marker=dict(
-                size=4,
-                color=embeddings_4d[:, 3],
-                colorscale='Sunsetdark',
-                showscale=True,
-                colorbar=dict(title="Component 4"),
-                opacity=0.7
-            ),
-            text=hover_text_4d,
-            hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 4:</b> %{marker.color:.3f}<extra></extra>',
-        ))
-        fig_4d.update_layout(
-            title=f"4D Isomap Embeddings (3D projection + color) - Centroid {centroid_idx}",
-            scene=dict(
+        if len(embeddings_3d) == 0:
+            print(f"[{datetime.now()}] Warning: No valid 3D embeddings for centroid {centroid_idx}", flush=True)
+        else:
+            # Create text snippets for hover
+            hover_text_3d = [get_text_snippet(p, config) for p in prompts_3d]
+            
+            # 3D Interactive visualization (2D plot with color for 3rd dimension)
+            fig_3d = go.Figure(data=go.Scatter(
+                x=embeddings_3d[:, 0].tolist(),
+                y=embeddings_3d[:, 1].tolist(),
+                mode='markers',
+                marker=dict(
+                    size=6,
+                    color=embeddings_3d[:, 2].tolist(),
+                    colorscale='Sunsetdark',
+                    showscale=True,
+                    colorbar=dict(title="Component 3"),
+                    opacity=0.7
+                ),
+                text=hover_text_3d,
+                hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 3:</b> %{marker.color:.3f}<extra></extra>',
+            ))
+            fig_3d.update_layout(
+                title=f"3D Isomap Embeddings (2D projection + color) - Centroid {centroid_idx}",
                 xaxis_title="Component 1",
                 yaxis_title="Component 2",
-                zaxis_title="Component 3"
-            ),
-            hovermode='closest',
-            width=config.visualization.fig_width_large,
-            height=config.visualization.fig_height_large
-        )
-        html_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_visualization_4D.html"
-        fig_4d.write_html(str(html_4d_path))
-        print(f"[{datetime.now()}] 4D interactive HTML saved to {html_4d_path}", flush=True)
+                hovermode='closest',
+                width=config.visualization.fig_width_large,
+                height=config.visualization.fig_height_large
+            )
+            html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
+            fig_3d.write_html(str(html_3d_path), include_plotlyjs=True)
+            print(f"[{datetime.now()}] 3D interactive HTML saved to {html_3d_path}", flush=True)
+    
+    if embeddings_4d is not None and prompts_4d is not None:
+        # Filter out invalid data
+        embeddings_4d, prompts_4d = filter_valid_data(embeddings_4d, prompts_4d)
+        
+        if len(embeddings_4d) == 0:
+            print(f"[{datetime.now()}] Warning: No valid 4D embeddings for centroid {centroid_idx}", flush=True)
+        else:
+            # Create text snippets for hover
+            hover_text_4d = [get_text_snippet(p, config) for p in prompts_4d]
+            
+            # 4D Interactive visualization (3D plot with color for 4th dimension)
+            fig_4d = go.Figure(data=go.Scatter3d(
+                x=embeddings_4d[:, 0].tolist(),
+                y=embeddings_4d[:, 1].tolist(),
+                z=embeddings_4d[:, 2].tolist(),
+                mode='markers',
+                marker=dict(
+                    size=4,
+                    color=embeddings_4d[:, 3].tolist(),
+                    colorscale='Sunsetdark',
+                    showscale=True,
+                    colorbar=dict(title="Component 4"),
+                    opacity=0.7
+                ),
+                text=hover_text_4d,
+                hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 4:</b> %{marker.color:.3f}<extra></extra>',
+            ))
+            fig_4d.update_layout(
+                title=f"4D Isomap Embeddings (3D projection + color) - Centroid {centroid_idx}",
+                scene=dict(
+                    xaxis_title="Component 1",
+                    yaxis_title="Component 2",
+                    zaxis_title="Component 3"
+                ),
+                hovermode='closest',
+                #width=config.visualization.fig_width_large,
+                #height=config.visualization.fig_height_large
+            )
+            html_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_visualization_4D.html"
+            fig_4d.write_html(str(html_4d_path), include_plotlyjs=True)
+            print(f"[{datetime.now()}] 4D interactive HTML saved to {html_4d_path}", flush=True)
 
 def main():
     print(f"[{datetime.now()}] Starting isomap processing for each centroid...", flush=True)

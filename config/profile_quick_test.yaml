@@ -27,7 +27,6 @@ training:
 
 clustering:
   n_centroids: 50            # Much smaller centroid set
-  n_clusters: 50             # Smaller cluster count
   k_nearest_neighbors: 5     # Reduced k
   k_neighbors_3d: 10
   k_neighbors_4d: 8
@@ -50,7 +49,6 @@ data:
 dimensionality:
   n_components: 4            # Reduced components
   n_neighbors: 10            # Reduced neighbors
-  n_neighbors_alt: 5
   n_components_2d: 2
   n_components_3d: 3
   n_components_4d: 4
