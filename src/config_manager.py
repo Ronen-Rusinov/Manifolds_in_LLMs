@@ -110,6 +110,7 @@ class VisualizationConfig:
     dim_2d: int = 2
     dim_3d: int = 3
     dim_4d: int = 4
+    visualise_every_n_centroids: int = 5
 
 
 @dataclass

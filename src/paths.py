@@ -36,27 +36,31 @@ def get_data_dir() -> Path:
     return project_root / "data" / "activations_data"
 
 
-def get_centroids_path(centroid_dir: str = "minibatch_kmeans") -> Path:
+def get_centroids_path(centroid_dir: str = "minibatch_kmeans_200") -> Path:
     """Get path to centroids file.
     
     Args:
-        centroid_dir: Directory name within results (default: minibatch_kmeans)
+        centroid_dir: Directory name within results (default: minibatch_kmeans_200)
     
     Returns:
         Path to centroids.npy file
     """
-    return get_results_dir() / centroid_dir / "centroids.npy"
+    
+    centroid_count = ''.join(filter(str.isdigit, centroid_dir))
+        
+    return get_results_dir() / centroid_dir / f"centroids_{centroid_count}.npy"
 
 
-def get_neighbor_indices_path(indices_file: str = "nearest_neighbors_indices_1.npy") -> Path:
+def get_neighbor_indices_path(indices_file: str = "nearest_10000_neighbors_indices_layer_18_n_centroids_200.npy") -> Path:
     """Get path to nearest neighbor indices file.
     
     Args:
-        indices_file: Filename of indices (default: nearest_neighbors_indices_1.npy)
-    
+        indices_file: Filename of indices f'nearest_{k_nearest}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy
+
     Returns:
         Path to neighbor indices file
     """
+
     return get_results_dir() / "Balltree" / indices_file
 
 

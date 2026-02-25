@@ -51,7 +51,7 @@ data:
 
 dimensionality:
   n_components: 12           # Standard 12 components
-  n_neighbors: 50            # Standard neighbors for manifold learning
+  n_neighbors: 10            # Standard neighbors for manifold learning
   n_neighbors_alt: 10
   n_components_2d: 2
   n_components_3d: 3
@@ -75,6 +75,7 @@ visualization:
   dim_2d: 2
   dim_3d: 3
   dim_4d: 4
+  visualise_every_n_centroids: 5
 
 numerical:
   zero_threshold: 1.0e-5

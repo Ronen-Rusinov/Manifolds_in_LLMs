@@ -10,4 +10,5 @@
 
 
 python -u $LLM_PROJ_PATH/scripts/obtain_K_nearest_to_centroids.py \
-  --config $LLM_PROJ_PATH/config/profile_production.yaml
+  --config $LLM_PROJ_PATH/config/profile_production.yaml \
+  --use-dual-tree

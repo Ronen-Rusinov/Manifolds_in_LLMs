@@ -16,7 +16,7 @@ from config_manager import load_config
 import paths
 
 
-def load_centroids(centroid_dir: str = "minibatch_kmeans") -> np.ndarray:
+def load_centroids(centroid_dir: str = "minibatch_kmeans_200") -> np.ndarray:
     """Load centroids from minibatch_kmeans results.
     
     Args:
@@ -38,11 +38,11 @@ def load_centroids(centroid_dir: str = "minibatch_kmeans") -> np.ndarray:
     return centroids
 
 
-def load_neighbor_indices(indices_file: str = "nearest_neighbors_indices_1.npy") -> np.ndarray:
+def load_neighbor_indices(indices_file: str = "nearest_10000_neighbors_indices_layer_18_n_centroids_200.npy") -> np.ndarray:
     """Load precomputed nearest neighbor indices.
     
     Args:
-        indices_file: Filename of indices (default: nearest_neighbors_indices_1.npy)
+        indices_file: Filename of indices (default: "nearest_10000_neighbors_indices_layer_18_n_centroids_200.npy")
     
     Returns:
         Array of neighbor indices with shape (n_centroids, k_neighbors)

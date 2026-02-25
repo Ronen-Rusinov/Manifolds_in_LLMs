@@ -20,11 +20,16 @@ import plotly.graph_objects as go
 parser = argparse.ArgumentParser(description="Isomap for each centroid")
 
 # Isomap parameters
-parser.add_argument("--n_components", type=int, help="Number of components for Isomap")
-parser.add_argument("--n_neighbors", type=int, help="Number of neighbors for Isomap")
-parser.add_argument("--k_neighbors_isomap_alt", type=int, help="Alternative number of neighbors for Isomap")
-parser.add_argument("--n_centroids", type=int, help="Number of centroids")
-parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+parser.add_argument("--offset", nargs="?", type=int, default=0, help="Starting centroid index (0-based)")
+parser.add_argument("--count", nargs="?", type=int, default=None, help="Number of centroids to process")
+parser.add_argument("--n-components", type=int ,help="Number of components for Isomap")
+parser.add_argument("--n-neighbors", type=int, help="Number of neighbors for Isomap")
+parser.add_argument("--k-neighbors-isomap-alt", type=int, help="Alternative number of neighbors for Isomap")
+parser.add_argument("--n-centroids", type=int, help="Number of centroids")
+parser.add_argument("--random-seed", type=int, help="Random seed for reproducibility")
+parser.add_argument("--no-3d", action="store_true", help="Disable 3D visualization embeddings")
+parser.add_argument("--no-4d", action="store_true", help="Disable 4D visualization embeddings")
+parser.add_argument("--visualise-every", type=int, help="Visualize every n centroids")
 
 add_config_argument(parser)
 args = parser.parse_args()
@@ -41,6 +46,8 @@ if args.n_centroids is not None:
     config.clustering.n_centroids = args.n_centroids
 if args.random_seed is not None:
     config.training.random_seed = args.random_seed
+if args.visualise_every is not None:
+    config.visualization.visualise_every_n_centroids = args.visualise_every
 
 # Configuration from config object
 N_NEIGHBORS = config.clustering.k_neighbors_isomap_alt
@@ -48,6 +55,7 @@ DEFAULT_N_COMPONENTS = config.dimensionality.n_components
 N_COMPONENTS_3D = config.dimensionality.n_components_3d
 N_COMPONENTS_4D = config.dimensionality.n_components_4d
 N_VISUALIZATION_SAMPLES = config.data.n_samples_base  # Number of samples to visualize in 3D/4D
+VISUALISE_EVERY = config.visualization.visualise_every_n_centroids  # How often to create visualizations
 
 def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_neighbors):
     """Apply Isomap to a neighborhood of activations."""
@@ -149,7 +157,7 @@ def process_all_centroids(
         #delete isomap_main to free memory before next Isomap runs
         del isomap_main
         
-        if i % 10 == 0:
+        if i % VISUALISE_EVERY == 0:
             print(f"[{datetime.now()}] Processed {i + 1} centroids so far...", flush=True)
             embeddings_3d = None
             embeddings_4d = None
@@ -300,13 +308,7 @@ def main():
     
     # Parse command-line arguments for script-specific parameters
     # (config parameters are already loaded at module level)
-    parser = argparse.ArgumentParser(description="Run Isomap per centroid.")
-    parser.add_argument("offset", nargs="?", type=int, default=0, help="Starting centroid index (0-based)")
-    parser.add_argument("count", nargs="?", type=int, default=None, help="Number of centroids to process")
-    parser.add_argument("--no-3d", action="store_true", help="Disable 3D visualization embeddings")
-    parser.add_argument("--no-4d", action="store_true", help="Disable 4D visualization embeddings")
-    parser.add_argument("--config", type=str, default=None, help="Path to config file (already handled)")
-    
+
     # Parse only script-specific args, ignoring config-related ones
     args, unknown = parser.parse_known_args()
 
@@ -316,8 +318,9 @@ def main():
     enable_4d = not args.no_4d
     
     # Load required data using shared utilities
-    centroids = common.load_centroids()
-    neighbor_indices = common.load_neighbor_indices()
+    #Centroid filename is of the format f"centroids_{config.clustering.n_centroids}.npy", and neighbor indices filename is of the format f'nearest_{k_nearest}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy
+    centroids = common.load_centroids(f"minibatch_kmeans_{config.clustering.n_centroids}")
+    neighbor_indices = common.load_neighbor_indices(f"nearest_{config.clustering.k_neighbors_isomap_alt}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy")
     activations, prompts = common.load_activations_with_prompts(config=config)
     
     # Validate data consistency

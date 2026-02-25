@@ -75,6 +75,7 @@ visualization:
   dim_2d: 2
   dim_3d: 3
   dim_4d: 4
+  visualise_every_n_centroids: 20
 
 numerical:
   zero_threshold: 1.0e-5

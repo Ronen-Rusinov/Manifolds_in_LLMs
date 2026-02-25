@@ -130,6 +130,9 @@ visualization:
   dim_3d: 3                   # 3D visualization (visualization only)
   dim_4d: 4                   # 4D visualization (visualization only)
 
+  # Visualization frequency for centroids
+  visualise_every_n_centroids: 5
+
 # ============================================================================
 # NUMERICAL CONSTANTS & THRESHOLDS
 # ============================================================================
