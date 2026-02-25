@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=GuidedAutoencoder
-#SBATCH --output=./slurm/logs/logs/GuidedAutoencoder/GuidedAutoencoder_%j.log
-#SBATCH --error=./slurm/logs/errs/GuidedAutoencoder/GuidedAutoencoder_%j.err
+#SBATCH --output=./slurm/logs/GuidedAutoencoder/GuidedAutoencoder_%j/.log
+#SBATCH --error=./slurm/logs/GuidedAutoencoder/GuidedAutoencoder_%j/.err
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=12

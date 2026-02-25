@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=1_000_nearest_to_centroids
-#SBATCH --output=./slurm/logs/logs/1_000_nearest_to_centroids/1_000_nearest_to_centroids_%j.log
-#SBATCH --error=./slurm/logs/errs/1_000_nearest_to_centroids/1_000_nearest_to_centroids_%j.err
+#SBATCH --output=./slurm/logs/1_000_nearest_to_centroids/1_000_nearest_to_centroids_%j/.log
+#SBATCH --error=./slurm/logs/1_000_nearest_to_centroids/1_000_nearest_to_centroids_%j/.err
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1

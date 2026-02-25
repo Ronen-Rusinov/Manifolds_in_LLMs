@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=Locales
-#SBATCH --output=./slurm/logs/logs/locales/Locales_%j.log
-#SBATCH --error=./slurm/logs/errs/locales/Locales_%j.err
+#SBATCH --output=./slurm/logs/locales/Locales_%j/.log
+#SBATCH --error=./slurm/logs/locales/Locales_%j/.err
 #SBATCH --time=03:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=12

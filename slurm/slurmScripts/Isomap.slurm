@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=Isomap_12D
-#SBATCH --output=./slurm/logs/logs/isomap_12D/Isomap_12D_%j.log
-#SBATCH --error=./slurm/logs/errs/isomap_12D/Isomap_12D_%j.err
+#SBATCH --output=./slurm/logs/isomap_12D/Isomap_12D_%j/.log
+#SBATCH --error=./slurm/logs/isomap_12D/Isomap_12D_%j/.err
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=12

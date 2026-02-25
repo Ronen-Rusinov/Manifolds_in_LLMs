@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=view_edges
-#SBATCH --output=./slurm/logs/logs/view_edges/view_edges_%j.log
-#SBATCH --error=./slurm/logs/errs/view_edges/view_edges_%j.err
+#SBATCH --output=./slurm/logs/view_edges/view_edges_%j/.log
+#SBATCH --error=./slurm/logs/view_edges/view_edges_%j/.err
 #SBATCH --time=03:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1

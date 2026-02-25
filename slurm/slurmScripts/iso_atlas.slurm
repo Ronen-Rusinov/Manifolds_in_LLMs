@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=iso_atlas
-#SBATCH --output=./slurm/logs/logs/iso_atlas/iso_atlas_%j.log
-#SBATCH --error=./slurm/logs/errs/iso_atlas/iso_atlas_%j.err
+#SBATCH --output=./slurm/logs/iso_atlas/iso_atlas_%j/.log
+#SBATCH --error=./slurm/logs/iso_atlas/iso_atlas_%j/.err
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8

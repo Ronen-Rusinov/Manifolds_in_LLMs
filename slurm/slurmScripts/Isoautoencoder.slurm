@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=Isoautoencoder
-#SBATCH --output=./slurm/logs/logs/Isoautoencoder/Isoautoencoder_%j.log
-#SBATCH --error=./slurm/logs/errs/Isoautoencoder/Isoautoencoder_%j.err
+#SBATCH --output=./slurm/logs/Isoautoencoder/Isoautoencoder_%j/.log
+#SBATCH --error=./slurm/logs/Isoautoencoder/Isoautoencoder_%j/.err
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
