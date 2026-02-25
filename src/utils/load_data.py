@@ -7,10 +7,14 @@ Also, this script should be loaded in its entirety, not just 'from . import DATA
 """
 
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+from datetime import datetime
 from pathlib import Path
 import pandas as pd
 import time
-from config_manager import load_config
+from src.config_manager import load_config
 
 #Load config for default values
 _config = load_config()

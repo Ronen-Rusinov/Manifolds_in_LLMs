@@ -2,12 +2,28 @@ import numpy as np
 import os
 import pickle
 from tqdm import tqdm
-from src.config_manager import load_config_with_args
+from src.config_manager import load_config, add_config_argument
+import argparse
 
 # Load configuration with CLI argument overrides
-config = load_config_with_args(
-    description="Check overlap of nearest neighbor neighborhoods between centroids"
-)
+parser = argparse.ArgumentParser(description="Check overlap of nearest neighbor neighborhoods between centroids")
+
+# Neighborhood parameters
+parser.add_argument("--n_centroids", type=int, help="Number of centroids")
+parser.add_argument("--k_nearest_10000", type=int, help="Number of nearest neighbors")
+parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
+
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
+
+# Override config with CLI arguments
+if args.n_centroids is not None:
+    config.clustering.n_centroids = args.n_centroids
+if args.k_nearest_10000 is not None:
+    config.clustering.k_nearest_10000 = args.k_nearest_10000
+if args.layer_for_activation is not None:
+    config.model.layer_for_activation = args.layer_for_activation
 
 #load centroids
 print(f"Loading centroids...")

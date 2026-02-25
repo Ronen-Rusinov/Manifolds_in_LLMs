@@ -2,13 +2,26 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.utils import load_data
-from src.config_manager import load_config_with_args
+from src.config_manager import load_config, add_config_argument
+import argparse
 import numpy as np
 
 # Load configuration with CLI argument overrides
-config = load_config_with_args(
-    description="Analyze activation norms across different layers"
-)
+parser = argparse.ArgumentParser(description="Analyze activation norms across different layers")
+
+# Activation analysis parameters
+parser.add_argument("--layer_for_activation", type=int, help="Primary layer for activation extraction")
+parser.add_argument("--layer_alternative", type=int, help="Alternative layer for activation extraction")
+
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
+
+# Override config with CLI arguments
+if args.layer_for_activation is not None:
+    config.model.layer_for_activation = args.layer_for_activation
+if args.layer_alternative is not None:
+    config.model.layer_alternative = args.layer_alternative
 
 print("Loading data...")
 df = load_data.load_all_parquets(timing=True)

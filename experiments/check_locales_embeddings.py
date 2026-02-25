@@ -6,16 +6,41 @@ from datetime import datetime
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from utils import load_data
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
 from joblib import parallel_backend
 import joblib
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
 # Load configuration with CLI argument overrides
-config = load_config_with_args(
-    description="Check locality preservation in Isomap embeddings"
-)
+parser = argparse.ArgumentParser(description="Check locality preservation in Isomap embeddings")
+
+# Locality check parameters
+parser.add_argument("--k_nearest_neighbors", type=int, help="Number of nearest neighbors")
+parser.add_argument("--n_samples_locality", type=int, help="Number of samples for locality checks")
+parser.add_argument("--n_components", type=int, help="Number of components for Isomap")
+parser.add_argument("--first_n_words", type=int, help="First N words for text snippet")
+parser.add_argument("--last_n_words", type=int, help="Last N words for text snippet")
+parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
+
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
+
+# Override config with CLI arguments
+if args.k_nearest_neighbors is not None:
+    config.clustering.k_nearest_neighbors = args.k_nearest_neighbors
+if args.n_samples_locality is not None:
+    config.data.n_samples_locality = args.n_samples_locality
+if args.n_components is not None:
+    config.dimensionality.n_components = args.n_components
+if args.first_n_words is not None:
+    config.text.first_n_words = args.first_n_words
+if args.last_n_words is not None:
+    config.text.last_n_words = args.last_n_words
+if args.layer_for_activation is not None:
+    config.model.layer_for_activation = args.layer_for_activation
 
 def get_text_snippet(text, first_n=None, last_n=None):
 	"""Extract first and last n words from text."""

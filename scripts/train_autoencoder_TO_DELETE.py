@@ -12,13 +12,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from utils.load_data import load_train_test_val_all_parquets, load_all_parquets
 from standard_autoencoder import StandardAutoencoder
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
 
-def main():
-    # Load configuration with CLI argument overrides
-    config = load_config_with_args(
-        description="Train standard autoencoder with early stopping"
-    )
+def main(config):
     print("Loading all activations...")
     start_time = time.time()
     train_df,val_df,test_df = load_train_test_val_all_parquets(timing=True)
@@ -29,9 +26,14 @@ def main():
     print(f"Validation DataFrame shape: {val_df.shape}")
     print(f"Test DataFrame shape: {test_df.shape}")
 
-    train_activations = np.array(train_df['activation_layer_18'].tolist(), dtype=np.float16)
-    val_activations = np.array(val_df['activation_layer_18'].tolist(), dtype=np.float16)
-    test_activations = np.array(test_df['activation_layer_18'].tolist(), dtype=np.float16)
+    # Extract activations from configured layer (using float32 for numerical stability)
+    layer = config.model.layer_for_activation
+    column_name = f'activation_layer_{layer}'
+    if column_name not in train_df.columns:
+        raise ValueError(f"Column '{column_name}' not found in data. Available columns: {list(train_df.columns)}")
+    train_activations = np.array(train_df[column_name].tolist(), dtype=np.float32)
+    val_activations = np.array(val_df[column_name].tolist(), dtype=np.float32)
+    test_activations = np.array(test_df[column_name].tolist(), dtype=np.float32)
     print(f"Train activations shape: {train_activations.shape}")
     print(f"Validation activations shape: {val_activations.shape}")
     print(f"Test activations shape: {test_activations.shape}")
@@ -85,4 +87,35 @@ def main():
     print(f"Reconstruction error histogram saved to {hist_path}")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Train standard autoencoder with early stopping")
+    
+    # Autoencoder parameters
+    parser.add_argument("--latent_dim", type=int, help="Latent dimension for autoencoder")
+    parser.add_argument("--epochs", type=int, help="Number of training epochs")
+    parser.add_argument("--learning_rate", "--lr", type=float, help="Learning rate")
+    parser.add_argument("--patience", type=int, help="Patience for early stopping")
+    parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+    parser.add_argument("--train_fraction", type=float, help="Fraction of data for training")
+    parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
+    
+    add_config_argument(parser)
+    args = parser.parse_args()
+    config = load_config(args.config)
+    
+    # Override config with CLI arguments
+    if args.latent_dim is not None:
+        config.model.latent_dim = args.latent_dim
+    if args.epochs is not None:
+        config.training.epochs = args.epochs
+    if args.learning_rate is not None:
+        config.training.learning_rate = args.learning_rate
+    if args.patience is not None:
+        config.training.patience = args.patience
+    if args.random_seed is not None:
+        config.training.random_seed = args.random_seed
+    if args.train_fraction is not None:
+        config.data.train_fraction = args.train_fraction
+    if args.layer_for_activation is not None:
+        config.model.layer_for_activation = args.layer_for_activation
+    
+    main(config)

@@ -222,51 +222,28 @@ def _dict_to_config(config_dict: Dict[str, Any]) -> Config:
     )
 
 
-def create_arg_parser(description: str = "Script with configurable parameters") -> argparse.ArgumentParser:
-    """Create an argument parser with common parameter options.
+def add_config_argument(parser: argparse.ArgumentParser) -> None:
+    """Add --config argument to an existing parser.
+    
+    Use this to add just the config file argument to your script's parser,
+    keeping --help clean and focused on script-specific options.
     
     Args:
-        description: Description for the argument parser.
+        parser: An ArgumentParser instance to add the argument to.
     
-    Returns:
-        ArgumentParser with standard config and parameter options.
+    Example:
+        parser = argparse.ArgumentParser(description="My script")
+        add_config_argument(parser)
+        parser.add_argument("--my-option", type=int, help="My specific option")
+        args = parser.parse_args()
+        config = load_config(args.config)
     """
-    parser = argparse.ArgumentParser(description=description)
-    
-    # Config file argument
     parser.add_argument(
         "--config",
         type=str,
         default=None,
         help="Path to YAML config file (uses default_config.yaml if not specified)"
     )
-    
-    # Model arguments
-    parser.add_argument("--latent_dim", type=int, help="Latent dimension")
-    parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
-    
-    # Training arguments
-    parser.add_argument("--epochs", type=int, help="Number of training epochs")
-    parser.add_argument("--learning_rate", "--lr", type=float, help="Learning rate")
-    parser.add_argument("--patience", type=int, help="Patience for early stopping")
-    parser.add_argument("--accumulation_steps", type=int, help="Gradient accumulation steps")
-    parser.add_argument("--random_seed", type=int, help="Random seed")
-    
-    # Clustering arguments
-    parser.add_argument("--n_clusters", type=int, help="Number of clusters")
-    parser.add_argument("--k_nearest_neighbors", type=int, help="K for nearest neighbors")
-    parser.add_argument("--k_neighbors_isomap", type=int, help="K neighbors for Isomap")
-    
-    # Data arguments
-    parser.add_argument("--batch_size", type=int, help="Batch size")
-    parser.add_argument("--train_fraction", type=float, help="Fraction of data for training")
-    parser.add_argument("--val_fraction", type=float, help="Fraction of data for validation")
-    
-    # Dimensionality arguments
-    parser.add_argument("--n_components", type=int, help="Number of components")
-    parser.add_argument("--n_neighbors", type=int, help="Number of neighbors")
-    
-    return parser
 
 
 def merge_cli_args(config: Config, args: argparse.Namespace) -> Config:
@@ -310,22 +287,22 @@ def load_config_with_args(
     description: str = "Script with configurable parameters",
     args: Optional[List[str]] = None
 ) -> Config:
-    """Convenience function: load config and parse CLI args in one call.
+    """DEPRECATED: This function adds too many arguments to script help pages.
     
-    Args:
-        description: Description for argument parser.
-        args: List of command-line arguments to parse (sys.argv[1:] if None).
+    Use this pattern instead:
+        
+        parser = argparse.ArgumentParser(description="Your description")
+        add_config_argument(parser)
+        args = parser.parse_args()
+        config = load_config(args.config)
     
-    Returns:
-        Config object with CLI overrides applied.
+    This keeps your script's --help focused on script-specific options.
     """
-    parser = create_arg_parser(description)
-    parsed_args = parser.parse_args(args)
-    
-    config = load_config(parsed_args.config)
-    config = merge_cli_args(config, parsed_args)
-    
-    return config
+    raise NotImplementedError(
+        "load_config_with_args() has been deprecated. "
+        "Use add_config_argument() to add --config to your parser instead. "
+        "See function docstring for example usage."
+    )
 
 
 # Convenience: module-level config instance (can be overridden by scripts)
@@ -348,6 +325,10 @@ def set_config(config: Config) -> None:
 
 if __name__ == "__main__":
     # Demo: load and print config
-    cfg = load_config()
+    parser = argparse.ArgumentParser(description="Config demo")
+    add_config_argument(parser)
+    args = parser.parse_args()
+    
+    cfg = load_config(args.config)
     print("Loaded configuration:")
     print(cfg)

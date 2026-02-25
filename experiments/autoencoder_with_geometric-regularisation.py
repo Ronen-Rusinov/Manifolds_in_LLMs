@@ -5,13 +5,38 @@ from sklearn.datasets import make_s_curve
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 from standard_autoencoder import StandardAutoencoder
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
 
 if __name__ == "__main__":
     # Load configuration with CLI argument overrides
-    config = load_config_with_args(
-        description="Train autoencoder with geometric regularization on swiss roll"
-    )
+    parser = argparse.ArgumentParser(description="Train autoencoder with geometric regularization")
+    
+    # Autoencoder parameters
+    parser.add_argument("--latent_dim", type=int, help="Latent dimension for autoencoder")
+    parser.add_argument("--epochs", type=int, help="Number of training epochs")
+    parser.add_argument("--learning_rate", "--lr", type=float, help="Learning rate")
+    parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+    parser.add_argument("--regularization_weight", type=float, help="Regularization weight")
+    parser.add_argument("--noise_level", type=float, help="Noise level for swiss roll data")
+    
+    add_config_argument(parser)
+    args = parser.parse_args()
+    config = load_config(args.config)
+    
+    # Override config with CLI arguments
+    if args.latent_dim is not None:
+        config.model.latent_dim = args.latent_dim
+    if args.epochs is not None:
+        config.training.epochs = args.epochs
+    if args.learning_rate is not None:
+        config.training.learning_rate = args.learning_rate
+    if args.random_seed is not None:
+        config.training.random_seed = args.random_seed
+    if args.regularization_weight is not None:
+        config.training.regularization_weight = args.regularization_weight
+    if args.noise_level is not None:
+        config.synthetic_data.noise_level = args.noise_level
 
     #print the details of the current cuda device if available
     if torch.cuda.is_available():

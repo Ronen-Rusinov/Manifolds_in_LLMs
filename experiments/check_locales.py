@@ -3,16 +3,35 @@ import sys
 #Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from utils import load_data
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
 from joblib import parallel_backend
 import numpy as np
 
 # Load configuration with CLI argument overrides
-config = load_config_with_args(
-    description="Check locality: find nearest neighbors of random sample points"
-)
+parser = argparse.ArgumentParser(description="Check locality: find nearest neighbors of random sample points")
 
-if __name__ == "__main__":\
+# Locality check parameters
+parser.add_argument("--k_nearest_neighbors", type=int, help="Number of nearest neighbors")
+parser.add_argument("--n_samples_locality", type=int, help="Number of samples for locality checks")
+parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
+parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
+
+# Override config with CLI arguments
+if args.k_nearest_neighbors is not None:
+    config.clustering.k_nearest_neighbors = args.k_nearest_neighbors
+if args.n_samples_locality is not None:
+    config.data.n_samples_locality = args.n_samples_locality
+if args.layer_for_activation is not None:
+    config.model.layer_for_activation = args.layer_for_activation
+if args.random_seed is not None:
+    config.training.random_seed = args.random_seed
+
+if __name__ == "__main__":
     #pick N points at random, find the K nearest neighbors
     data = load_data.load_first_parquet(timing=True)
     sample_points = data.sample(n=config.data.n_samples_locality, random_state=config.training.random_seed)

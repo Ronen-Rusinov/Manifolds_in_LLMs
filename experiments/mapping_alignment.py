@@ -6,64 +6,54 @@ from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-from utils.load_data import load_all_parquets
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
+from utils import common
 import numpy as np
 from rigid_procrustes import impose_X_on_Y, procrustes
 
 # Load configuration with CLI argument overrides
-config = load_config_with_args(
-    description="Check if overlapping neighborhoods can be rigidly aligned in embedding space"
-)
+parser = argparse.ArgumentParser(description="Check if overlapping neighborhoods can be rigidly aligned")
 
-def load_centroids():
-    """Load centroids from minibatch_kmeans."""
-    centroids_path = Path(__file__).parent.parent / "results" / "minibatch_kmeans" / "centroids.npy"
-    print(f"[{datetime.now()}] Loading centroids from {centroids_path}...", flush=True)
-    centroids = np.load(centroids_path)
-    print(f"[{datetime.now()}] Centroids loaded. Shape: {centroids.shape}", flush=True)
-    return centroids
+# Mapping alignment parameters
+parser.add_argument("--n_centroids", type=int, help="Number of centroids")
+parser.add_argument("--n_components", type=int, help="Number of components for Isomap")
+parser.add_argument("--k_nearest_10000", type=int, help="Number of nearest neighbors")
+parser.add_argument("--procrustes_n_samples", type=int, help="Number of test samples for Procrustes")
 
-def load_neighbor_indices(indices_file="nearest_neighbors_indices_1.npy"):
-    """Load precomputed nearest neighbor indices."""
-    indices_path = Path(__file__).parent.parent / "results" / "Balltree" / indices_file
-    print(f"[{datetime.now()}] Loading nearest neighbor indices from {indices_path}...", flush=True)
-    neighbor_indices = np.load(indices_path)
-    print(f"[{datetime.now()}] Neighbor indices loaded. Shape: {neighbor_indices.shape}", flush=True)
-    return neighbor_indices
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
 
-def load_activations():
-    """Load all activation vectors and corresponding prompts."""
-    print(f"[{datetime.now()}] Loading all activations and prompts...", flush=True)
-    df = load_all_parquets(timing=True)
-    activations = np.array(df[f'activation_layer_{config.model.layer_for_activation}'].tolist(), dtype=np.float32)
-    print(f"[{datetime.now()}] Activations loaded. Shape: {activations.shape}", flush=True)
-    return activations
-
-def load_isomap_embeddings(centroid_index):
-    """Load Isomap embeddings for a specific centroid."""
-    #pretty format the centroid index to be 4 digits with leading zeros
-    centroid_index_str = f"{centroid_index:04d}"
-    embeddings_path = Path(__file__).parent.parent / "results" / "iso_atlas" / f"{config.dimensionality.n_components}D" / f"centroid_{centroid_index_str}_embeddings_{config.dimensionality.n_components}D.npy"
-    print(f"[{datetime.now()}] Loading Isomap embeddings for centroid {centroid_index} from {embeddings_path}...", flush=True)
-    embeddings = np.load(embeddings_path)
-    print(f"[{datetime.now()}] Isomap embeddings loaded for centroid {centroid_index}. Shape: {embeddings.shape}", flush=True)
-    return embeddings
+# Override config with CLI arguments
+if args.n_centroids is not None:
+    config.clustering.n_centroids = args.n_centroids
+if args.n_components is not None:
+    config.dimensionality.n_components = args.n_components
+if args.k_nearest_10000 is not None:
+    config.clustering.k_nearest_10000 = args.k_nearest_10000
+if args.procrustes_n_samples is not None:
+    config.data.procrustes_n_samples = args.procrustes_n_samples
 
 def main():
-    centroids = load_centroids()
-    neighbor_indices = load_neighbor_indices()
-    activations = load_activations()
+    # Load required data using shared utilities
+    centroids = common.load_centroids()
+    neighbor_indices = common.load_neighbor_indices()
+    activations = common.load_activations(config=config)
+    
+    # Validate data consistency
+    common.validate_data_consistency(centroids, neighbor_indices, activations)
+    
+    # Load all embeddings into memory to avoid repeated disk access
+    all_embeddings = common.batch_load_isomap_embeddings(
+        config.clustering.n_centroids,
+        config.dimensionality.n_components
+    )
 
-    #have sentinel value indicate a skipped pair due to insufficient common neighbors, and initialize the alignment distances matrix
+    # Initialize result matrices and directories
     os.makedirs(Path(__file__).parent.parent / "results" / "mapping_alignment", exist_ok=True)
     alignment_distances = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
     alignment_distances_before_alignment = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
-
-    #preload all embeddings into memory to avoid repeated disk access during the pairwise comparisons
-    all_embeddings = {}
-    for i in range(config.clustering.n_centroids):
-        all_embeddings[i] = load_isomap_embeddings(i)
 
     for i in range(config.clustering.n_centroids):
         for j in range(i+1, config.clustering.n_centroids):

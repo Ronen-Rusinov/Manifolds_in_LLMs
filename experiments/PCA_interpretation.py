@@ -2,14 +2,33 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.utils import load_data
-from src.config_manager import load_config_with_args
+from src.config_manager import load_config, add_config_argument
+import argparse
 import numpy as np
 from sklearn.decomposition import PCA
 
 # Load configuration with CLI argument overrides
-config = load_config_with_args(
-    description="Interpret PCA components of activation clusters around centroids"
-)
+parser = argparse.ArgumentParser(description="Interpret PCA components of activation clusters around centroids")
+
+# PCA parameters
+parser.add_argument("--n_components", type=int, help="Number of PCA components")
+parser.add_argument("--n_centroids", type=int, help="Number of centroids")
+parser.add_argument("--pca_max_samples", type=int, help="Maximum activations sampled per PCA component")
+parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
+
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
+
+# Override config with CLI arguments
+if args.n_components is not None:
+    config.dimensionality.n_components = args.n_components
+if args.n_centroids is not None:
+    config.clustering.n_centroids = args.n_centroids
+if args.pca_max_samples is not None:
+    config.numerical.pca_max_samples = args.pca_max_samples
+if args.layer_for_activation is not None:
+    config.model.layer_for_activation = args.layer_for_activation
 
 if __name__ == "__main__":
     df = load_data.load_all_parquets(timing=True)

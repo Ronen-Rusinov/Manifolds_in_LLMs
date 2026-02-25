@@ -7,8 +7,9 @@ from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-from utils.load_data import load_all_parquets
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
+from utils import common
 
 import numpy as np
 import joblib
@@ -16,9 +17,30 @@ from sklearn.manifold import Isomap
 import plotly.graph_objects as go
 
 # Load configuration with CLI argument overrides
-config = load_config_with_args(
-    description="Apply Isomap to neighborhoods around centroids"
-)
+parser = argparse.ArgumentParser(description="Isomap for each centroid")
+
+# Isomap parameters
+parser.add_argument("--n_components", type=int, help="Number of components for Isomap")
+parser.add_argument("--n_neighbors", type=int, help="Number of neighbors for Isomap")
+parser.add_argument("--k_neighbors_isomap_alt", type=int, help="Alternative number of neighbors for Isomap")
+parser.add_argument("--n_centroids", type=int, help="Number of centroids")
+parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
+
+# Override config with CLI arguments
+if args.n_components is not None:
+    config.dimensionality.n_components = args.n_components
+if args.n_neighbors is not None:
+    config.dimensionality.n_neighbors = args.n_neighbors
+if args.k_neighbors_isomap_alt is not None:
+    config.clustering.k_neighbors_isomap_alt = args.k_neighbors_isomap_alt
+if args.n_centroids is not None:
+    config.clustering.n_centroids = args.n_centroids
+if args.random_seed is not None:
+    config.training.random_seed = args.random_seed
 
 # Configuration from config object
 N_NEIGHBORS = config.clustering.k_neighbors_isomap_alt
@@ -26,32 +48,6 @@ DEFAULT_N_COMPONENTS = config.dimensionality.n_components
 N_COMPONENTS_3D = config.dimensionality.n_components_3d
 N_COMPONENTS_4D = config.dimensionality.n_components_4d
 N_VISUALIZATION_SAMPLES = config.data.n_samples_base  # Number of samples to visualize in 3D/4D
-
-def load_centroids():
-    """Load centroids from minibatch_kmeans."""
-    centroids_path = Path(__file__).parent.parent / "results" / "minibatch_kmeans" / "centroids.npy"
-    print(f"[{datetime.now()}] Loading centroids from {centroids_path}...", flush=True)
-    centroids = np.load(centroids_path)
-    print(f"[{datetime.now()}] Centroids loaded. Shape: {centroids.shape}", flush=True)
-    return centroids
-
-def load_neighbor_indices(indices_file="nearest_neighbors_indices_1.npy"):
-    """Load precomputed nearest neighbor indices."""
-    indices_path = Path(__file__).parent.parent / "results" / "Balltree" / indices_file
-    print(f"[{datetime.now()}] Loading nearest neighbor indices from {indices_path}...", flush=True)
-    neighbor_indices = np.load(indices_path)
-    print(f"[{datetime.now()}] Neighbor indices loaded. Shape: {neighbor_indices.shape}", flush=True)
-    return neighbor_indices
-
-def load_activations():
-    """Load all activation vectors and corresponding prompts."""
-    print(f"[{datetime.now()}] Loading all activations and prompts...", flush=True)
-    df = load_all_parquets(timing=True)
-    activations = np.array(df['activation_layer_18'].tolist(), dtype=np.float32)
-    prompts = df['text_prefix'].tolist() if 'text_prefix' in df.columns else [None] * len(df)
-    print(f"[{datetime.now()}] Activations loaded. Shape: {activations.shape}", flush=True)
-    print(f"[{datetime.now()}] Prompts loaded. Count: {len(prompts)}", flush=True)
-    return activations, prompts
 
 def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_neighbors):
     """Apply Isomap to a neighborhood of activations."""
@@ -319,22 +315,13 @@ def main():
     enable_3d = not args.no_3d
     enable_4d = not args.no_4d
     
-    # Load required data
-    centroids = load_centroids()
-    neighbor_indices = load_neighbor_indices()
-    activations, prompts = load_activations()
+    # Load required data using shared utilities
+    centroids = common.load_centroids()
+    neighbor_indices = common.load_neighbor_indices()
+    activations, prompts = common.load_activations_with_prompts(config=config)
     
-    # Verify shapes match
-    print(f"[{datetime.now()}] Verifying data shapes...", flush=True)
-    print(f"  Centroids shape: {centroids.shape}", flush=True)
-    print(f"  Neighbor indices shape: {neighbor_indices.shape}", flush=True)
-    print(f"  Activations shape: {activations.shape}", flush=True)
-    print(f"  Prompts count: {len(prompts)}", flush=True)
-    
-    if centroids.shape[0] != neighbor_indices.shape[0]:
-        raise ValueError("Number of centroids does not match number of neighbor indices!")
-    if activations.shape[0] != len(prompts):
-        raise ValueError("Number of activations does not match number of prompts!")
+    # Validate data consistency
+    common.validate_data_consistency(centroids, neighbor_indices, activations, prompts)
     
     # Process centroids in specified range
     try:

@@ -12,7 +12,8 @@ import torch
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from guided_autoencoder import GuidedAutoencoder
 from utils import load_data
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
 
 
 def to_tensor(array, device):
@@ -21,9 +22,36 @@ def to_tensor(array, device):
 
 if __name__ == "__main__":
     # Load configuration with CLI argument overrides
-    config = load_config_with_args(
-        description="Train guided autoencoder with Isomap pretraining"
-    )
+    parser = argparse.ArgumentParser(description="Train guided autoencoder with Isomap pretraining")
+    
+    # Autoencoder parameters
+    parser.add_argument("--latent_dim", type=int, help="Latent dimension for autoencoder")
+    parser.add_argument("--pretrain_epochs", type=int, help="Number of pretraining epochs")
+    parser.add_argument("--epochs", type=int, help="Number of training epochs")
+    parser.add_argument("--learning_rate", "--lr", type=float, help="Learning rate")
+    parser.add_argument("--patience", type=int, help="Patience for early stopping")
+    parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+    parser.add_argument("--regularization_weight", type=float, help="Regularization weight")
+    
+    add_config_argument(parser)
+    args = parser.parse_args()
+    config = load_config(args.config)
+    
+    # Override config with CLI arguments
+    if args.latent_dim is not None:
+        config.model.latent_dim = args.latent_dim
+    if args.pretrain_epochs is not None:
+        config.training.pretrain_epochs = args.pretrain_epochs
+    if args.epochs is not None:
+        config.training.epochs = args.epochs
+    if args.learning_rate is not None:
+        config.training.learning_rate = args.learning_rate
+    if args.patience is not None:
+        config.training.patience = args.patience
+    if args.random_seed is not None:
+        config.training.random_seed = args.random_seed
+    if args.regularization_weight is not None:
+        config.training.regularization_weight = args.regularization_weight
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     latent_dim = config.model.latent_dim
@@ -44,13 +72,15 @@ if __name__ == "__main__":
     train_data = train_data[~train_data.index.isin(pretrain_data.index)]
     val_data = val_data[~val_data.index.isin(pretrain_val.index)]
 
-    train_acts = np.array(train_data["activation_layer_18"].tolist(), dtype=np.float32)
-    val_acts = np.array(val_data["activation_layer_18"].tolist(), dtype=np.float32)
+    layer = config.model.layer_for_activation
+    column_name = f'activation_layer_{layer}'
+    train_acts = np.array(train_data[column_name].tolist(), dtype=np.float32)
+    val_acts = np.array(val_data[column_name].tolist(), dtype=np.float32)
 
     isomap_path = Path(__file__).parent.parent / "results" / "isomap_12D" / "isomap_n_neighbors_50_n_components_12.joblib"
     isomap_fitted = joblib.load(isomap_path)
-    pretrain_embeddings = isomap_fitted.transform(np.array(pretrain_data["activation_layer_18"].tolist(), dtype=np.float32))
-    pretrain_acts = np.array(pretrain_data["activation_layer_18"].tolist(), dtype=np.float32)
+    pretrain_embeddings = isomap_fitted.transform(np.array(pretrain_data[column_name].tolist(), dtype=np.float32))
+    pretrain_acts = np.array(pretrain_data[column_name].tolist(), dtype=np.float32)
 
     model = GuidedAutoencoder(input_dim=train_acts.shape[1], latent_dim=latent_dim, device=device)
     model.train_with_isomap_pretraining(

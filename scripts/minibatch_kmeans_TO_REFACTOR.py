@@ -14,23 +14,25 @@ from sklearn.cluster import MiniBatchKMeans
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from utils.load_data import load_all_parquets
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
 
-def main():
+def main(config):
     # Load configuration with CLI argument overrides
-    config = load_config_with_args(
-        description="Run MiniBatchKMeans clustering on activations"
-    )
     print("Loading all activations...")
     start_time = time.time()
     df = load_all_parquets(timing=True)
     print(f"Total time to load: {time.time() - start_time:.2f}s")
     print(f"DataFrame shape: {df.shape}")
     
-    # Extract activations from layer 18
+    # Extract activations from configured layer
     print("\nExtracting activation vectors...")
-    activations = np.array(df['activation_layer_18'].tolist(), dtype=np.float32)
-    print(f"Activations shape: {activations.shape}")
+    layer = config.model.layer_for_activation
+    column_name = f'activation_layer_{layer}'
+    if column_name not in df.columns:
+        raise ValueError(f"Column '{column_name}' not found in data. Available columns: {list(df.columns)}")
+    activations = np.array(df[column_name].tolist(), dtype=np.float32)
+    print(f"Activations shape: {activations.shape} (from layer {layer})")
     
     # Run MiniBatchKMeans
     print("\nRunning MiniBatchKMeans clustering...")
@@ -104,5 +106,40 @@ def main():
     
     print(f"Summary saved to {summary_path}")
 
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run MiniBatchKMeans clustering on activations")
+
+    # MiniBatchKMeans parameters
+    parser.add_argument("--n_clusters", type=int, help="Number of clusters")
+    parser.add_argument("--batch_size", type=int, help="Batch size for MiniBatchKMeans")
+    parser.add_argument("--max_iter", "--epochs", type=int, dest="epochs", help="Maximum number of iterations (epochs)")
+    parser.add_argument("--max_no_improvement", "--patience", type=int, dest="patience", help="Number of iterations with no improvement before stopping")
+    parser.add_argument("--reassignment_ratio", type=float, help="Reassignment ratio for KMeans")
+    parser.add_argument("--kmeans_n_init", type=int, help="Number of KMeans initializations")
+    parser.add_argument("--kmeans_verbose", type=int, help="Verbosity level for KMeans")
+    parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+    
+    add_config_argument(parser)
+    args = parser.parse_args()
+    config = load_config(args.config)
+    
+    # Override config with CLI arguments
+    if args.n_clusters is not None:
+        config.clustering.n_clusters = args.n_clusters
+    if args.batch_size is not None:
+        config.data.batch_size = args.batch_size
+    if args.epochs is not None:
+        config.training.epochs = args.epochs
+    if args.patience is not None:
+        config.training.patience = args.patience
+    if args.reassignment_ratio is not None:
+        config.clustering.kmeans_reassignment_ratio = args.reassignment_ratio
+    if args.kmeans_n_init is not None:
+        config.clustering.kmeans_n_init = args.kmeans_n_init
+    if args.kmeans_verbose is not None:
+        config.clustering.kmeans_verbose = args.kmeans_verbose
+    if args.random_seed is not None:
+        config.training.random_seed = args.random_seed
+    
+    main(config)

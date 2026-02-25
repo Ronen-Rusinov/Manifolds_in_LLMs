@@ -6,7 +6,8 @@ import numpy as np
 import joblib
 import datetime
 from pathlib import Path
-from config_manager import load_config_with_args
+from config_manager import load_config, add_config_argument
+import argparse
 
 def train_and_save_isomap(dataframes, save_path, config):
     """
@@ -24,10 +25,12 @@ def train_and_save_isomap(dataframes, save_path, config):
     #Use only specified fraction of train data. More than that is infeasable
     train_data = train_data.sample(frac=config.data.train_fraction, random_state=config.training.random_seed)
 
-    activations_layer_18 = np.array(train_data["activation_layer_18"].tolist())
+    layer = config.model.layer_for_activation
+    column_name = f'activation_layer_{layer}'
+    activations = np.array(train_data[column_name].tolist(), dtype=np.float32)
     with joblib.parallel_backend(backend='loky', n_jobs=-1):
         isomap = Isomap(n_neighbors=n_neighbors, n_components=n_components, n_jobs=-1)
-        embeddings = isomap.fit_transform(activations_layer_18)
+        embeddings = isomap.fit_transform(activations)
         joblib.dump(isomap, save_path / f"isomap_n_neighbors_{n_neighbors}_n_components_{n_components}.joblib")
         #dump embeddings and original training data
         np.save(save_path / f"embeddings_n_neighbors_{n_neighbors}_n_components_{n_components}.npy", embeddings)
@@ -36,12 +39,12 @@ def train_and_save_isomap(dataframes, save_path, config):
         #Evaluate on val data
         #use specified fraction of val data for evaluation
         val_data = val_data.sample(frac=config.data.val_fraction, random_state=config.training.random_seed)
-        activations_layer_18_val = np.array(val_data["activation_layer_18"].tolist())
-        val_embeddings = isomap.transform(activations_layer_18_val)
+        activations_val = np.array(val_data[column_name].tolist(), dtype=np.float32)
+        val_embeddings = isomap.transform(activations_val)
         #check trustworthiness score for different values of k
         scores = {}
         for k in range(5, 51, 5):
-            score = trustworthiness(activations_layer_18_val, val_embeddings, n_neighbors=k)
+            score = trustworthiness(activations_val, val_embeddings, n_neighbors=k)
             scores[k] = score
             print(f"Trustworthiness score for k={k}: {score}")
     
@@ -58,10 +61,34 @@ def train_and_save_isomap(dataframes, save_path, config):
     plt.close()
 
 if __name__ == "__main__":
-    # Load configuration with CLI argument overrides
-    config = load_config_with_args(
-        description="Train and save Isomap model\n"
-    )
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Train and save Isomap model")
+    
+    # Isomap parameters
+    parser.add_argument("--n_components", type=int, help="Number of components for Isomap")
+    parser.add_argument("--n_neighbors", type=int, help="Number of neighbors for Isomap")
+    parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
+    parser.add_argument("--train_fraction", type=float, help="Fraction of data for training")
+    parser.add_argument("--val_fraction", type=float, help="Fraction of data for validation")
+    parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+    
+    add_config_argument(parser)
+    args = parser.parse_args()
+    config = load_config(args.config)
+    
+    # Override config with CLI arguments
+    if args.n_components is not None:
+        config.dimensionality.n_components = args.n_components
+    if args.n_neighbors is not None:
+        config.dimensionality.n_neighbors = args.n_neighbors
+    if args.layer_for_activation is not None:
+        config.model.layer_for_activation = args.layer_for_activation
+    if args.train_fraction is not None:
+        config.data.train_fraction = args.train_fraction
+    if args.val_fraction is not None:
+        config.data.val_fraction = args.val_fraction
+    if args.random_seed is not None:
+        config.training.random_seed = args.random_seed
     
     #print beggining timestamp
     
