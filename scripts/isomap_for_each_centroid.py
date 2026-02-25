@@ -23,8 +23,7 @@ parser = argparse.ArgumentParser(description="Isomap for each centroid")
 parser.add_argument("--offset", nargs="?", type=int, default=0, help="Starting centroid index (0-based)")
 parser.add_argument("--count", nargs="?", type=int, default=None, help="Number of centroids to process")
 parser.add_argument("--n-components", type=int ,help="Number of components for Isomap")
-parser.add_argument("--n-neighbors", type=int, help="Neighborhood size of centroids")
-parser.add_argument("--k-neighbors-isomap", type=int, help="Number of neighbors for isomap")
+parser.add_argument("--n-neighbors-isomap", type=int ,help="Number of neighbors for geodesic distance estimation in Isomap")
 parser.add_argument("--n-centroids", type=int, help="Number of centroids")
 parser.add_argument("--random-seed", type=int, help="Random seed for reproducibility")
 parser.add_argument("--no-3d", action="store_true", help="Disable 3D visualization embeddings")
@@ -36,34 +35,21 @@ args = parser.parse_args()
 config = load_config(args.config)
 
 # Override config with CLI arguments
-if args.n_neighbors is not None:
-    config.clustering.n_neighbors = args.n_neighbors
-else:
-    config.clustering.n_neighbors = config.clustering.k_nearest_large
-    
 if args.n_components is not None:
     config.dimensionality.n_components = args.n_components
-if args.k_neighbors_isomap is not None:
-    config.clustering.k_neighbors_isomap = args.k_neighbors_isomap
 if args.n_centroids is not None:
     config.clustering.n_centroids = args.n_centroids
 if args.random_seed is not None:
     config.training.random_seed = args.random_seed
 if args.visualise_every is not None:
     config.visualization.visualise_every_n_centroids = args.visualise_every
+if args.n_neighbors_isomap is not None:
+    config.dimensionality.n_neighbors = args.n_neighbors_isomap
 
-# Configuration from config object
-N_NEIGHBORS_ISOMAP = config.clustering.k_neighbors_isomap
-K_NEAREST = config.clustering.n_neighbors
-DEFAULT_N_COMPONENTS = config.dimensionality.n_components
-N_COMPONENTS_3D = config.dimensionality.n_components_3d
-N_COMPONENTS_4D = config.dimensionality.n_components_4d
-N_VISUALIZATION_SAMPLES = config.data.n_samples_base  # Number of samples to visualize in 3D/4D
-VISUALISE_EVERY = config.visualization.visualise_every_n_centroids  # How often to create visualizations
 
-def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_neighbors):
+def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_neighbors_isomap):
     """Apply Isomap to a neighborhood of activations."""
-    isomap = Isomap(n_neighbors=n_neighbors, n_components=n_components, n_jobs=-1)
+    isomap = Isomap(n_neighbors=n_neighbors_isomap, n_components=n_components, n_jobs=-1)
     embeddings = isomap.fit_transform(activations)
     return embeddings, isomap
 
@@ -148,7 +134,7 @@ def process_all_centroids(
             neighborhood_activations, 
             neighbor_idx, 
             n_components, 
-            N_NEIGHBORS_ISOMAP
+            config.dimensionality.n_neighbors_isomap
         )
         
         # Save main results
@@ -172,15 +158,15 @@ def process_all_centroids(
                 # Apply Isomap to 3D for visualization (sample)
                 print(f"[{datetime.now()}] Applying Isomap to 3D for visualization...", flush=True)
                 # Use a subset of samples for 3D to reduce computation
-                sample_size_3d = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
+                sample_size_3d = min(config.visualization.n_samples_visualization * 1000, len(neighborhood_activations))
                 sample_indices_3d = np.random.choice(len(neighborhood_activations), sample_size_3d, replace=False)
                 sampled_activations_3d = neighborhood_activations[sample_indices_3d]
             
                 embeddings_3d, isomap_3d = apply_isomap_to_neighborhood(
                     sampled_activations_3d,
                     sample_indices_3d,
-                    N_COMPONENTS_3D,
-                    min(N_NEIGHBORS_3D, sample_size_3d - 1)
+                    config.visualization.n_components_3d,
+                    min(config.visualization.n_neighbors_3d, sample_size_3d - 1)
                 )
                     
                 # Save 3D results
@@ -197,15 +183,15 @@ def process_all_centroids(
             if enable_4d:
                 # Apply Isomap to 4D for visualization (sample)
                 print(f"[{datetime.now()}] Applying Isomap to 4D for visualization...", flush=True)
-                sample_size_4d = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
+                sample_size_4d = min(config.visualization.n_samples_visualization * 1000, len(neighborhood_activations))
                 sample_indices_4d = np.random.choice(len(neighborhood_activations), sample_size_4d, replace=False)
                 sampled_activations_4d = neighborhood_activations[sample_indices_4d]
                 
                 embeddings_4d, isomap_4d = apply_isomap_to_neighborhood(
                     sampled_activations_4d,
                     sample_indices_4d,
-                    N_COMPONENTS_4D,
-                    min(config.clustering.k_neighbors_4d, sample_size_4d - 1)
+                    config.visualization.n_components_4d,
+                    min(config.visualization.n_neighbors_4d, sample_size_4d - 1)
                 )
                     
                 # Save 4D results

@@ -29,8 +29,6 @@ clustering:
   n_centroids: 50            # Much smaller centroid set
   n_clusters: 50             # Smaller cluster count
   k_nearest_neighbors: 5     # Reduced k
-  k_neighbors_isomap: 5      # Reduced Isomap k
-  k_neighbors_isomap_alt: 5
   k_neighbors_3d: 10
   k_neighbors_4d: 8
   k_nearest_large: 500       # Reduced for speed

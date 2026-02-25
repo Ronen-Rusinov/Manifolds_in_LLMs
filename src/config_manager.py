@@ -49,14 +49,9 @@ class TrainingConfig:
 class ClusteringConfig:
     """Clustering and neighborhood specifications."""
     n_centroids: int = 200
-    n_clusters: int = 1000
-    k_nearest_neighbors: int = 20
-    k_neighbors_isomap: int = 50
-    k_neighbors_isomap_alt: int = 10
-    k_neighbors_3d: int = 50
-    k_neighbors_4d: int = 30
+    k_neighbors_3d: int = 5000
+    k_neighbors_4d: int = 3000
     k_nearest_large: int = 10000
-    k_nearest_1000: int = 1000
     kmeans_n_init: int = 3
     kmeans_verbose: int = 10
     kmeans_reassignment_ratio: float = 0.05
@@ -80,7 +75,7 @@ class DataConfig:
 class DimensionalityConfig:
     """Dimensionality reduction parameters."""
     n_components: int = 12
-    n_neighbors: int = 50
+    n_neighbors: int = 10
     n_neighbors_alt: int = 10
     n_components_2d: int = 2
     n_components_3d: int = 3
@@ -107,6 +102,7 @@ class VisualizationConfig:
     fig_height_large: int = 30
     histogram_bins: int = 50
     histogram_bins_alt: int = 100
+    n_samples_visualization: int = 5000
     dim_2d: int = 2
     dim_3d: int = 3
     dim_4d: int = 4

@@ -53,11 +53,8 @@ clustering:
   n_clusters: 200            # Number of clusters (MiniBatchKMeans)
   
   # K-nearest neighbors
-  k_nearest_neighbors: 20     # Default k for neighbor searches
-  k_neighbors_isomap: 10      # K neighbors for Isomap geodesic distance
-  k_neighbors_isomap_alt: 10  # Alternative k for Isomap
-  k_neighbors_3d: 10          # Min neighbors for 3D Isomap sampling
-  k_neighbors_4d: 10          # Min neighbors for 4D Isomap sampling
+  k_neighbors_3d: 5000         # Min neighbors for 3D Isomap sampling
+  k_neighbors_4d: 3000         # Min neighbors for 4D Isomap sampling
   
   # Large-scale neighborhood
   k_nearest_large: 10000      # Number of nearest neighbors (large-scale)
