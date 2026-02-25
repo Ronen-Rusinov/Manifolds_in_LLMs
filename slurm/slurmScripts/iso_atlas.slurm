@@ -9,5 +9,18 @@
 #SBATCH --partition=studentbatch
 #SBATCH --array=[0,40,80,120,160]
 
+N_COMPONENTS=${N_COMPONENTS:-50}
+DISABLE_3D=${DISABLE_3D:-1}
+DISABLE_4D=${DISABLE_4D:-1}
+
+ARGS=("${SLURM_ARRAY_TASK_ID}" 40 "--n-components" "${N_COMPONENTS}")
+if [[ "${DISABLE_3D}" == "1" ]]; then
+	ARGS+=("--no-3d")
+fi
+if [[ "${DISABLE_4D}" == "1" ]]; then
+	ARGS+=("--no-4d")
+fi
+
 echo "Running Isomap for centroids in range: ${SLURM_ARRAY_TASK_ID} to $((${SLURM_ARRAY_TASK_ID} + 40))"
-python -u $LLM_PROJ_PATH/scripts/isomap_for_each_centroid.py ${SLURM_ARRAY_TASK_ID} 40
+echo "Args: ${ARGS[*]}"
+python -u $LLM_PROJ_PATH/scripts/isomap_for_each_centroid.py "${ARGS[@]}"
