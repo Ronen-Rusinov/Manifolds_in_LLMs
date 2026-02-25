@@ -37,9 +37,9 @@ config = load_config(args.config)
 
 # Override config with CLI arguments
 if args.n_neighbors is not None:
-    config.dimensionality.n_neighbors = args.n_neighbors
+    config.clustering.n_neighbors = args.n_neighbors
 else:
-    config.dimensionality.n_neighbors = config.clustering.k_nearest_large
+    config.clustering.n_neighbors = config.clustering.k_nearest_large
     
 if args.n_components is not None:
     config.dimensionality.n_components = args.n_components
