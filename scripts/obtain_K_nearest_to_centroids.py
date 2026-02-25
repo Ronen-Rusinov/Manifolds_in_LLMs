@@ -27,7 +27,7 @@ args = parser.parse_args()
 config = load_config(args.config)
 
 # Override config with CLI arguments
-k_nearest = args.k if args.k is not None else config.clustering.k_nearest_10000
+k_nearest = args.k if args.k is not None else config.clustering.k_nearest_large
 if args.balltree_leaf_size is not None:
     config.model.balltree_leaf_size = args.balltree_leaf_size
 if args.layer_for_activation is not None:
@@ -46,7 +46,6 @@ with open(centroids_path, "rb") as f:
     centroids = numpy.load(f)
 print(f"[{datetime.now()}] centroids loaded from {centroids_path}.")
 print(f"[{datetime.now()}] centroids shape: {centroids.shape}")
-
 
 #load ball tree
 print(f"[{datetime.now()}] loading BallTree...")

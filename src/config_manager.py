@@ -55,7 +55,7 @@ class ClusteringConfig:
     k_neighbors_isomap_alt: int = 10
     k_neighbors_3d: int = 50
     k_neighbors_4d: int = 30
-    k_nearest_10000: int = 10000
+    k_nearest_large: int = 10000
     k_nearest_1000: int = 1000
     kmeans_n_init: int = 3
     kmeans_verbose: int = 10

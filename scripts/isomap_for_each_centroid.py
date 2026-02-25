@@ -23,8 +23,8 @@ parser = argparse.ArgumentParser(description="Isomap for each centroid")
 parser.add_argument("--offset", nargs="?", type=int, default=0, help="Starting centroid index (0-based)")
 parser.add_argument("--count", nargs="?", type=int, default=None, help="Number of centroids to process")
 parser.add_argument("--n-components", type=int ,help="Number of components for Isomap")
-parser.add_argument("--n-neighbors", type=int, help="Number of neighbors for Isomap")
-parser.add_argument("--k-neighbors-isomap-alt", type=int, help="Alternative number of neighbors for Isomap")
+parser.add_argument("--n-neighbors", type=int, help="Neighborhood size of centroids")
+parser.add_argument("--k-neighbors-isomap", type=int, help="Number of neighbors for isomap")
 parser.add_argument("--n-centroids", type=int, help="Number of centroids")
 parser.add_argument("--random-seed", type=int, help="Random seed for reproducibility")
 parser.add_argument("--no-3d", action="store_true", help="Disable 3D visualization embeddings")
@@ -36,12 +36,15 @@ args = parser.parse_args()
 config = load_config(args.config)
 
 # Override config with CLI arguments
-if args.n_components is not None:
-    config.dimensionality.n_components = args.n_components
 if args.n_neighbors is not None:
     config.dimensionality.n_neighbors = args.n_neighbors
-if args.k_neighbors_isomap_alt is not None:
-    config.clustering.k_neighbors_isomap_alt = args.k_neighbors_isomap_alt
+else:
+    config.dimensionality.n_neighbors = config.clustering.k_nearest_large
+    
+if args.n_components is not None:
+    config.dimensionality.n_components = args.n_components
+if args.k_neighbors_isomap is not None:
+    config.clustering.k_neighbors_isomap = args.k_neighbors_isomap
 if args.n_centroids is not None:
     config.clustering.n_centroids = args.n_centroids
 if args.random_seed is not None:
@@ -50,7 +53,8 @@ if args.visualise_every is not None:
     config.visualization.visualise_every_n_centroids = args.visualise_every
 
 # Configuration from config object
-N_NEIGHBORS = config.clustering.k_neighbors_isomap_alt
+N_NEIGHBORS = config.clustering.k_neighbors_isomap
+K_NEAREST = config.clustering.n_neighbors
 DEFAULT_N_COMPONENTS = config.dimensionality.n_components
 N_COMPONENTS_3D = config.dimensionality.n_components_3d
 N_COMPONENTS_4D = config.dimensionality.n_components_4d
@@ -320,7 +324,7 @@ def main():
     # Load required data using shared utilities
     #Centroid filename is of the format f"centroids_{config.clustering.n_centroids}.npy", and neighbor indices filename is of the format f'nearest_{k_nearest}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy
     centroids = common.load_centroids(f"minibatch_kmeans_{config.clustering.n_centroids}")
-    neighbor_indices = common.load_neighbor_indices(f"nearest_{config.clustering.k_neighbors_isomap_alt}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy")
+    neighbor_indices = common.load_neighbor_indices(f"nearest_{config.clustering.k_nearest_large}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy")
     activations, prompts = common.load_activations_with_prompts(config=config)
     
     # Validate data consistency

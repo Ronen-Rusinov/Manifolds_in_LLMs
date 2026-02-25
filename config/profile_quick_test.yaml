@@ -33,7 +33,7 @@ clustering:
   k_neighbors_isomap_alt: 5
   k_neighbors_3d: 10
   k_neighbors_4d: 8
-  k_nearest_10000: 500       # Reduced for speed
+  k_nearest_large: 500       # Reduced for speed
   kmeans_n_init: 1           # Single initialization
   kmeans_verbose: 10
   kmeans_reassignment_ratio: 0.05
