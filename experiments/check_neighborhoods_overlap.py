@@ -124,7 +124,7 @@ plt.figure(figsize=(config.visualization.fig_width_compact, config.visualization
 plt.imshow(hist_arr, aspect='auto', cmap='viridis')
 plt.colorbar(label='Frequency of shared neighbors')
 plt.title('Histogram of Shared Neighbors for Each Centroid')
-plt.xlabel('Number of Shared Neighbors (binned)')
+plt.xlabel(f"Number of Shared Neighbors - Each bin account for {config.clustering.k_nearest_large//config.visualization.histogram_bins} neighbors")
 plt.ylabel('Centroid Index')
 histogram_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_histogram_heatmap_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
 plt.savefig(histogram_path)
