@@ -124,7 +124,7 @@ def process_all_centroids(
             print(f"[{datetime.now()}] Warning: count {count} exceeds available centroids. Processing {n_centroids - offset} centroids instead.", flush=True)
             count = n_centroids - offset
     
-    output_dir = Path(__file__).parent.parent / "results" / "iso_atlas"
+    output_dir = Path(__file__).parent.parent / "results" / f"iso_atlas_{n_components}D"
     output_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"[{datetime.now()}] Processing {count} centroids (offset: {offset}, range: [{offset}, {offset + count - 1}])...", flush=True)
