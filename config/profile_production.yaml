@@ -86,3 +86,13 @@ synthetic_data:
 logging:
   log_interval: 1
   verbose_level: 10
+
+autoencoder:
+  training_batch_size: 10000  # Full batch training (GPU can handle ~10k samples)
+  hidden_dim_ratio: 0.5       # Hidden layer size ratio: hidden_dim = ratio * (input_dim + latent_dim)
+  epochs: 300                 # Number of training epochs for autoencoder
+  learning_rate: 1.0e-3       # Learning rate for autoencoder training
+  patience: 20                # Early stopping patience for autoencoder
+  regularization_weight: 1.0  # Weight for geometric regularization (Jacobian orthogonality)
+  train_fraction: 0.7         # Fraction of neighborhood data for training (70%)
+  val_fraction: 0.15          # Fraction of neighborhood data for validation (15%)

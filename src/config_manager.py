@@ -133,6 +133,19 @@ class LoggingConfig:
 
 
 @dataclass
+class AutoencoderConfig:
+    """Autoencoder-specific training parameters."""
+    training_batch_size: int = 10000  # Full batch training (GPU can handle ~10k samples)
+    hidden_dim_ratio: float = 0.5  # hidden_dim = ratio * (input_dim + latent_dim)
+    epochs: int = 300
+    learning_rate: float = 1.0e-3
+    patience: int = 20
+    regularization_weight: float = 1.0
+    train_fraction: float = 0.7  # 70% for training
+    val_fraction: float = 0.15  # 15% for validation (remaining 15% for test)
+
+
+@dataclass
 class Config:
     """Complete configuration object with all subsections."""
     model: ModelConfig = field(default_factory=ModelConfig)
@@ -145,6 +158,7 @@ class Config:
     numerical: NumericalConfig = field(default_factory=NumericalConfig)
     synthetic_data: SyntheticDataConfig = field(default_factory=SyntheticDataConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    autoencoder: AutoencoderConfig = field(default_factory=AutoencoderConfig)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert config to dictionary."""
@@ -215,6 +229,7 @@ def _dict_to_config(config_dict: Dict[str, Any]) -> Config:
         numerical=NumericalConfig(**config_dict.get("numerical", {})),
         synthetic_data=SyntheticDataConfig(**config_dict.get("synthetic_data", {})),
         logging=LoggingConfig(**config_dict.get("logging", {})),
+        autoencoder=AutoencoderConfig(**config_dict.get("autoencoder", {})),
     )
 
 

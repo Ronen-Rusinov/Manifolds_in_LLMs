@@ -87,3 +87,13 @@ synthetic_data:
 logging:
   log_interval: 1
   verbose_level: 10
+
+autoencoder:
+  training_batch_size: 1000  # Full batch for quick testing (smaller neighborhoods)
+  hidden_dim_ratio: 0.5
+  epochs: 10                 # Minimal epochs for testing
+  learning_rate: 1.0e-3
+  patience: 5                # Aggressive early stopping
+  regularization_weight: 1.0
+  train_fraction: 0.5        # Use 50% of data for testing
+  val_fraction: 0.2          # 20% validation set

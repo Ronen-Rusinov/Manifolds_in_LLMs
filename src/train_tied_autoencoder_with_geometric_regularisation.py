@@ -194,6 +194,7 @@ def evaluate_test_set(model, test_data, device='cpu'):
     }
 
 
+
 def visualize_reconstruction_errors(errors, error_stats, output_path, num_bins=50):
     """
     Create and save histogram of reconstruction errors.
@@ -217,6 +218,19 @@ def visualize_reconstruction_errors(errors, error_stats, output_path, num_bins=5
     plt.close()
     
     print(f"Reconstruction error histogram saved to {output_path}")
+
+
+def eignvalue_error(mat):
+    #It is prohibitively expensive to compute the  eigenvalues of a matrix
+    # in order to use them as regularisation during training;
+    #But we may use them for evaluation purposes, to check how well the regularisation is working.
+
+    eigenvalues = torch.linalg.eigvals(mat)
+    #We want the eigenvalues to be close to 1, so we can compute the mean squared error of the eigenvalues from 1
+    error = torch.mean((eigenvalues - 1) ** 2)
+    return error
+
+
 
 
 if __name__ == "__main__":
