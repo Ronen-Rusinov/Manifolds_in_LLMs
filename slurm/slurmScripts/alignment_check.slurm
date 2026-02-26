@@ -9,5 +9,5 @@
 #SBATCH --partition=studentbatch
 
 python -u $LLM_PROJ_PATH/experiments/mapping_alignment.py \
-  --n-components 100 \
+  --n-components 50 \
   --config $LLM_PROJ_PATH/config/profile_production.yaml
