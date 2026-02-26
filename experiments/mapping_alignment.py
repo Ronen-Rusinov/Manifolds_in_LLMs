@@ -33,6 +33,12 @@ if args.k_nearest_large is not None:
     config.clustering.k_nearest_large = args.k_nearest_large
 
 def main():
+
+    # Initialize result matrices and directories
+    os.makedirs(Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}", exist_ok=True)
+    alignment_distances = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
+    alignment_distances_before_alignment = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
+
     # Load all embeddings into memory to avoid repeated disk access
     all_embeddings = common.batch_load_isomap_embeddings(
         config.clustering.n_centroids,
@@ -47,10 +53,6 @@ def main():
     # Validate data consistency
     common.validate_data_consistency(centroids, neighbor_indices, activations)
     
-    # Initialize result matrices and directories
-    os.makedirs(Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}", exist_ok=True)
-    alignment_distances = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
-    alignment_distances_before_alignment = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
 
     for i in range(config.clustering.n_centroids):
         for j in range(i+1, config.clustering.n_centroids):
@@ -119,15 +121,14 @@ def main():
             alignment_distances[j, i] = distances.mean()
             alignment_distances_before_alignment[j, i] = unaligned_distances.mean()
 
-
     #Save the alignment distances matrix
-    alignment_distances_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_{config.dimensionality.n_components}D_n_clusters{config.n_clusters}.npy"
+    alignment_distances_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_{config.dimensionality.n_components}D_n_clusters{config.clustering.n_centroids}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix to {alignment_distances_path}...", flush=True)
     np.save(alignment_distances_path, alignment_distances)
     print(f"[{datetime.now()}] Alignment distances matrix saved.", flush=True)
 
     #Save the alignment distances matrix before alignment
-    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_before_alignment_{config.dimensionality.n_components}D_n_clusters{config.n_clusters}.npy"
+    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_before_alignment_{config.dimensionality.n_components}D_n_clusters{config.clustering.n_centroids}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix before alignment to {alignment_distances_before_alignment_path}...", flush=True)
     np.save(alignment_distances_before_alignment_path, alignment_distances_before_alignment)
     print(f"[{datetime.now()}] Alignment distances matrix before alignment saved.", flush=True)
@@ -140,26 +141,12 @@ def main():
     plt.colorbar()
     plt.title("Mean Distance Before Alignment")
 
-    """
-    #This just makes it less interpretable. Depricating.
-    #mark with red the pairs that were skipped due to insufficient common neighbors
-    skipped_pairs = np.where(alignment_distances_before_alignment == config.numerical.sentinel_value)
-    plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
-    """
-
     plt.subplot(1, 2, 2)
     plt.imshow(alignment_distances, cmap='viridis')
     plt.colorbar()
     plt.title("Mean Distance After Alignment")
 
-    """
-    #This just makes it less interpretable. Depricating.
-    #mark with red the pairs that were skipped due to insufficient common neighbors
-    skipped_pairs = np.where(alignment_distances == config.numerical.sentinel_value)
-    plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
-    """
-
-    heatmap_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_heatmap_{config.dimensionality.n_components}D_n_clusters{config.n_clusters}.png"
+    heatmap_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_heatmap_{config.dimensionality.n_components}D_n_clusters{config.clustering.n_centroids}.png"
     print(f"[{datetime.now()}] Saving alignment distances heatmap to {heatmap_path}...", flush=True)
     plt.savefig(heatmap_path)
     print(f"[{datetime.now()}] Alignment distances heatmap saved.", flush=True)
