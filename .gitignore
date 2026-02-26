@@ -238,3 +238,4 @@ test_*
 *.jpg
 *.png
 *.svg
+*.backup
