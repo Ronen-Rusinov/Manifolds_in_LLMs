@@ -47,9 +47,8 @@ def main():
     # Validate data consistency
     common.validate_data_consistency(centroids, neighbor_indices, activations)
     
-
     # Initialize result matrices and directories
-    os.makedirs(Path(__file__).parent.parent / "results" / "mapping_alignment", exist_ok=True)
+    os.makedirs(Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}", exist_ok=True)
     alignment_distances = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
     alignment_distances_before_alignment = np.full((config.clustering.n_centroids, config.clustering.n_centroids), config.numerical.sentinel_value, dtype=np.float32)
 
@@ -122,13 +121,13 @@ def main():
 
 
     #Save the alignment distances matrix
-    alignment_distances_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_{config.n_components}D_n_clusters{config.n_clusters}.npy"
+    alignment_distances_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_{config.dimensionality.n_components}D_n_clusters{config.n_clusters}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix to {alignment_distances_path}...", flush=True)
     np.save(alignment_distances_path, alignment_distances)
     print(f"[{datetime.now()}] Alignment distances matrix saved.", flush=True)
 
     #Save the alignment distances matrix before alignment
-    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_before_alignment_{config.n_components}D_n_clusters{config.n_clusters}.npy"
+    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_before_alignment_{config.dimensionality.n_components}D_n_clusters{config.n_clusters}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix before alignment to {alignment_distances_before_alignment_path}...", flush=True)
     np.save(alignment_distances_before_alignment_path, alignment_distances_before_alignment)
     print(f"[{datetime.now()}] Alignment distances matrix before alignment saved.", flush=True)
@@ -160,7 +159,7 @@ def main():
     plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
     """
 
-    heatmap_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_heatmap_{config.n_components}D_n_clusters{config.n_clusters}.png"
+    heatmap_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_heatmap_{config.dimensionality.n_components}D_n_clusters{config.n_clusters}.png"
     print(f"[{datetime.now()}] Saving alignment distances heatmap to {heatmap_path}...", flush=True)
     plt.savefig(heatmap_path)
     print(f"[{datetime.now()}] Alignment distances heatmap saved.", flush=True)
