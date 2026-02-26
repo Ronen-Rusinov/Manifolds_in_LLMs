@@ -193,6 +193,66 @@ def batch_load_isomap_embeddings(n_centroids: int, n_components: int) -> dict:
     return all_embeddings
 
 
+def load_autoencoder_embeddings(centroid_index: int, n_components: int) -> np.ndarray:
+    """Load autoencoder embeddings for a specific centroid.
+    
+    Args:
+        centroid_index: Index of centroid (0-based)
+        n_components: Number of dimensions for embeddings
+    
+    Returns:
+        Array of embeddings with shape (n_neighborhood_samples, n_components)
+    
+    Raises:
+        FileNotFoundError: If embeddings file does not exist
+    """
+    embeddings_path = paths.get_autoencoder_embeddings_path(centroid_index, n_components)
+    if not embeddings_path.exists():
+        raise FileNotFoundError(f"Autoencoder embeddings file not found at {embeddings_path}")
+    
+    print(
+        f"[{datetime.now()}] Loading autoencoder embeddings for centroid {centroid_index} from {embeddings_path}...",
+        flush=True,
+    )
+    embeddings = np.load(embeddings_path)
+    print(f"[{datetime.now()}] Autoencoder embeddings loaded. Shape: {embeddings.shape}", flush=True)
+    return embeddings
+
+
+def batch_load_autoencoder_embeddings(n_centroids: int, n_components: int) -> dict:
+    """Load autoencoder embeddings for all centroids.
+    
+    Useful for avoiding repeated disk access during pairwise comparisons.
+    
+    Args:
+        n_centroids: Total number of centroids to load
+        n_components: Number of dimensions for embeddings
+    
+    Returns:
+        Dictionary mapping centroid_index -> embeddings array
+    
+    Raises:
+        FileNotFoundError: If any embeddings file does not exist
+    """
+    print(f"[{datetime.now()}] Preloading all {n_centroids} autoencoder embeddings into memory...", flush=True)
+    all_embeddings = {}
+    
+    for i in range(n_centroids):
+        try:
+            embeddings_path = paths.get_autoencoder_embeddings_path(i, n_components)
+            all_embeddings[i] = np.load(embeddings_path)
+            if (i + 1) % 50 == 0:
+                print(f"[{datetime.now()}] Loaded {i + 1}/{n_centroids} autoencoder embeddings", flush=True)
+        except FileNotFoundError:
+            raise FileNotFoundError(
+                f"Missing autoencoder embeddings for centroid {i} at {embeddings_path}. "
+                f"Run isometric_autoencoder_for_each_centroid script for all centroids first."
+            )
+    
+    print(f"[{datetime.now()}] All autoencoder embeddings preloaded successfully", flush=True)
+    return all_embeddings
+
+
 def validate_data_consistency(
     centroids: np.ndarray,
     neighbor_indices: np.ndarray,
