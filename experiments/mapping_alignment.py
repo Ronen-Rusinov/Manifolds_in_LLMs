@@ -70,7 +70,7 @@ def main():
             indices_j_set = set(indices_j)
             common_indices = list(indices_i_set.intersection(indices_j_set))
 
-            if len(common_indices) <= config.dimensionality.n_components: 
+            if len(common_indices) <= config.dimensionality.n_components//2: 
                 print(f"[{datetime.now()}] Skipping centroid pair ({i}, {j}) due to insufficient common neighbors ({len(common_indices)}).", flush=True)
                 continue
             
@@ -135,16 +135,22 @@ def main():
 
     #save a heatmap of the alignment distances matrix before and after alignment for visual comparison
     import matplotlib.pyplot as plt
-    plt.figure(figsize=(config.visualization.fig_width_standard, config.visualization.fig_height_standard))
-    plt.subplot(1, 2, 1)
-    plt.imshow(alignment_distances_before_alignment, cmap='viridis')
-    plt.colorbar()
-    plt.title("Mean Distance Before Alignment")
-
-    plt.subplot(1, 2, 2)
-    plt.imshow(alignment_distances, cmap='viridis')
-    plt.colorbar()
-    plt.title("Mean Distance After Alignment")
+    
+    # Determine the common colorbar range across both matrices
+    vmin = min(alignment_distances_before_alignment[alignment_distances_before_alignment != config.numerical.sentinel_value].min(),
+               alignment_distances[alignment_distances != config.numerical.sentinel_value].min())
+    vmax = max(alignment_distances_before_alignment[alignment_distances_before_alignment != config.numerical.sentinel_value].max(),
+               alignment_distances[alignment_distances != config.numerical.sentinel_value].max())
+    
+    fig, axes = plt.subplots(1, 2, figsize=(config.visualization.fig_width_standard, config.visualization.fig_height_standard))
+    
+    im1 = axes[0].imshow(alignment_distances_before_alignment, cmap='viridis', vmin=vmin, vmax=vmax)
+    axes[0].set_title("Mean Distance Before Alignment")
+    
+    im2 = axes[1].imshow(alignment_distances, cmap='viridis', vmin=vmin, vmax=vmax)
+    axes[1].set_title("Mean Distance After Alignment")
+    
+    fig.colorbar(im2, ax=axes)
 
     heatmap_path = Path(__file__).parent.parent / "results" / f"mapping_alignment_{config.clustering.n_centroids}_{config.dimensionality.n_components}_{config.clustering.k_nearest_large}" / f"alignment_distances_heatmap_{config.dimensionality.n_components}D_n_clusters{config.clustering.n_centroids}.png"
     print(f"[{datetime.now()}] Saving alignment distances heatmap to {heatmap_path}...", flush=True)
