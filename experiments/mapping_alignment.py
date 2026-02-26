@@ -16,10 +16,9 @@ from rigid_procrustes import impose_X_on_Y, procrustes
 parser = argparse.ArgumentParser(description="Check if overlapping neighborhoods can be rigidly aligned")
 
 # Mapping alignment parameters
-parser.add_argument("--n_centroids", type=int, help="Number of centroids")
-parser.add_argument("--n_components", type=int, help="Number of components for Isomap")
-parser.add_argument("--k_nearest_10000", type=int, help="Number of nearest neighbors")
-parser.add_argument("--procrustes_n_samples", type=int, help="Number of test samples for Procrustes")
+parser.add_argument("--n-centroids", type=int, help="Number of centroids")
+parser.add_argument("--n-components", type=int, help="Number of components for Isomap")
+parser.add_argument("--k-nearest-large", type=int, help="Number of nearest neighbors")
 
 add_config_argument(parser)
 args = parser.parse_args()
@@ -30,25 +29,24 @@ if args.n_centroids is not None:
     config.clustering.n_centroids = args.n_centroids
 if args.n_components is not None:
     config.dimensionality.n_components = args.n_components
-if args.k_nearest_10000 is not None:
-    config.clustering.k_nearest_10000 = args.k_nearest_10000
-if args.procrustes_n_samples is not None:
-    config.data.procrustes_n_samples = args.procrustes_n_samples
+if args.k_nearest_large is not None:
+    config.clustering.k_nearest_large = args.k_nearest_large
 
 def main():
-    # Load required data using shared utilities
-    centroids = common.load_centroids()
-    neighbor_indices = common.load_neighbor_indices()
-    activations = common.load_activations(config=config)
-    
-    # Validate data consistency
-    common.validate_data_consistency(centroids, neighbor_indices, activations)
-    
     # Load all embeddings into memory to avoid repeated disk access
     all_embeddings = common.batch_load_isomap_embeddings(
         config.clustering.n_centroids,
         config.dimensionality.n_components
     )
+    
+    # Load required data using shared utilities
+    centroids = common.load_centroids(f"minibatch_kmeans_{config.clustering.n_centroids}")
+    neighbor_indices = common.load_neighbor_indices(f"nearest_{config.clustering.k_nearest_large}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy")
+    activations = common.load_activations(config=config)
+    
+    # Validate data consistency
+    common.validate_data_consistency(centroids, neighbor_indices, activations)
+    
 
     # Initialize result matrices and directories
     os.makedirs(Path(__file__).parent.parent / "results" / "mapping_alignment", exist_ok=True)
@@ -62,10 +60,6 @@ def main():
             indices_i = neighbor_indices[i]
             indices_j = neighbor_indices[j]
 
-            #Get the corresponding activation vectors
-            activations_i = activations[indices_i]
-            activations_j = activations[indices_j]
-
             #Get the corresponding Isomap embeddings
             embeddings_i = all_embeddings[i]
             embeddings_j = all_embeddings[j]
@@ -75,7 +69,7 @@ def main():
             indices_j_set = set(indices_j)
             common_indices = list(indices_i_set.intersection(indices_j_set))
 
-            if len(common_indices) <= config.clustering.k_nearest_neighbors:
+            if len(common_indices) <= config.dimensionality.n_components: 
                 print(f"[{datetime.now()}] Skipping centroid pair ({i}, {j}) due to insufficient common neighbors ({len(common_indices)}).", flush=True)
                 continue
             
@@ -128,13 +122,13 @@ def main():
 
 
     #Save the alignment distances matrix
-    alignment_distances_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / "alignment_distances.npy"
+    alignment_distances_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_{config.n_components_}D_n_clusters{config.n_clusters}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix to {alignment_distances_path}...", flush=True)
     np.save(alignment_distances_path, alignment_distances)
     print(f"[{datetime.now()}] Alignment distances matrix saved.", flush=True)
 
     #Save the alignment distances matrix before alignment
-    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / "alignment_distances_before_alignment.npy"
+    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_before_alignment_{config.n_components_}D_n_clusters{config.n_clusters}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix before alignment to {alignment_distances_before_alignment_path}...", flush=True)
     np.save(alignment_distances_before_alignment_path, alignment_distances_before_alignment)
     print(f"[{datetime.now()}] Alignment distances matrix before alignment saved.", flush=True)
@@ -160,7 +154,7 @@ def main():
     skipped_pairs = np.where(alignment_distances == config.numerical.sentinel_value)
     plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
 
-    heatmap_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / "alignment_distances_heatmap.png"
+    heatmap_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_heatmap_{config.n_components_}D_n_clusters{config.n_clusters}.png"
     print(f"[{datetime.now()}] Saving alignment distances heatmap to {heatmap_path}...", flush=True)
     plt.savefig(heatmap_path)
     print(f"[{datetime.now()}] Alignment distances heatmap saved.", flush=True)
