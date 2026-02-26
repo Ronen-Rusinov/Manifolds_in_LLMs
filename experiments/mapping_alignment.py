@@ -122,13 +122,13 @@ def main():
 
 
     #Save the alignment distances matrix
-    alignment_distances_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_{config.n_components_}D_n_clusters{config.n_clusters}.npy"
+    alignment_distances_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_{config.n_components}D_n_clusters{config.n_clusters}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix to {alignment_distances_path}...", flush=True)
     np.save(alignment_distances_path, alignment_distances)
     print(f"[{datetime.now()}] Alignment distances matrix saved.", flush=True)
 
     #Save the alignment distances matrix before alignment
-    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_before_alignment_{config.n_components_}D_n_clusters{config.n_clusters}.npy"
+    alignment_distances_before_alignment_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_before_alignment_{config.n_components}D_n_clusters{config.n_clusters}.npy"
     print(f"[{datetime.now()}] Saving alignment distances matrix before alignment to {alignment_distances_before_alignment_path}...", flush=True)
     np.save(alignment_distances_before_alignment_path, alignment_distances_before_alignment)
     print(f"[{datetime.now()}] Alignment distances matrix before alignment saved.", flush=True)
@@ -141,20 +141,26 @@ def main():
     plt.colorbar()
     plt.title("Mean Distance Before Alignment")
 
+    """
+    #This just makes it less interpretable. Depricating.
     #mark with red the pairs that were skipped due to insufficient common neighbors
     skipped_pairs = np.where(alignment_distances_before_alignment == config.numerical.sentinel_value)
     plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
+    """
 
     plt.subplot(1, 2, 2)
     plt.imshow(alignment_distances, cmap='viridis')
     plt.colorbar()
     plt.title("Mean Distance After Alignment")
 
+    """
+    #This just makes it less interpretable. Depricating.
     #mark with red the pairs that were skipped due to insufficient common neighbors
     skipped_pairs = np.where(alignment_distances == config.numerical.sentinel_value)
     plt.scatter(skipped_pairs[1], skipped_pairs[0], color='red', label='Skipped Pairs', s=1)
+    """
 
-    heatmap_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_heatmap_{config.n_components_}D_n_clusters{config.n_clusters}.png"
+    heatmap_path = Path(__file__).parent.parent / "results" / "mapping_alignment" / f"alignment_distances_heatmap_{config.n_components}D_n_clusters{config.n_clusters}.png"
     print(f"[{datetime.now()}] Saving alignment distances heatmap to {heatmap_path}...", flush=True)
     plt.savefig(heatmap_path)
     print(f"[{datetime.now()}] Alignment distances heatmap saved.", flush=True)
