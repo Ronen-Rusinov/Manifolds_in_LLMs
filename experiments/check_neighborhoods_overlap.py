@@ -1,8 +1,11 @@
 import numpy as np
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) # add parent directory to path
 import pickle
 from tqdm import tqdm
 from src.config_manager import load_config, add_config_argument
+from src import paths
 import argparse
 
 # Load configuration with CLI argument overrides
@@ -10,8 +13,8 @@ parser = argparse.ArgumentParser(description="Check overlap of nearest neighbor 
 
 # Neighborhood parameters
 parser.add_argument("--n_centroids", type=int, help="Number of centroids")
-parser.add_argument("--k_nearest_10000", type=int, help="Number of nearest neighbors")
-parser.add_argument("--layer_for_activation", type=int, help="Layer index for activation extraction")
+parser.add_argument("--k-nearest-large", type=int, help="Number of nearest neighbors")
+parser.add_argument("--layer-for-activation", type=int, help="Layer index for activation extraction")
 
 add_config_argument(parser)
 args = parser.parse_args()
@@ -20,14 +23,14 @@ config = load_config(args.config)
 # Override config with CLI arguments
 if args.n_centroids is not None:
     config.clustering.n_centroids = args.n_centroids
-if args.k_nearest_10000 is not None:
-    config.clustering.k_nearest_10000 = args.k_nearest_10000
+if args.k_nearest_large is not None:
+    config.clustering.k_nearest_large = args.k_nearest_large
 if args.layer_for_activation is not None:
     config.model.layer_for_activation = args.layer_for_activation
 
 #load centroids
 print(f"Loading centroids...")
-centroids_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','minibatch_kmeans' ,'centroids.npy'))
+centroids_path = paths.get_centroids_path(f"minibatch_kmeans_{config.clustering.n_centroids}")
 with open(centroids_path, "rb") as f:
     centroids = np.load(f)
 print(f"Centroids loaded from {centroids_path}.")
@@ -35,7 +38,7 @@ print(f"Centroids shape: {centroids.shape}")
 
 #load nearest neighbors indices
 print(f"Loading nearest neighbors indices...")
-neighbors_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','Balltree' ,'nearest_neighbors_indices_1.npy'))
+neighbors_path = paths.get_neighbor_indices_path(f"nearest_{config.clustering.k_nearest_large}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy")
 with open(neighbors_path, "rb") as f:
     neighbors_indices = np.load(f)
 print(f"Nearest neighbors indices loaded from {neighbors_path}.")
@@ -47,8 +50,8 @@ for i in range(len(centroids)):
 print(f"Total unique nearest neighbor indices across all centroids: {len(total_seen_indices)}")
 
 #if overlaps list and matrix exist, load them and skip the computation
-overlaps_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_list.npy'))
-overlaps_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_matrix.npy'))
+overlaps_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_list_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.npy"))
+overlaps_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_matrix_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.npy"))
 if os.path.exists(overlaps_list_path) and os.path.exists(overlaps_path):
     print(f"Overlaps list and matrix already exist, loading them...")
     with open(overlaps_list_path, "rb") as f:
@@ -81,13 +84,19 @@ else:
     #order the overlaps list by the number of shared neighbors
     overlaps_list = overlaps_list[overlaps_list[:, 2].argsort()[::-1]]
 
+    #create dir if it doesn't exist
+    overlaps_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps'))
+    if not os.path.exists(overlaps_dir):
+        os.makedirs(overlaps_dir)
+        print(f"Created directory for overlaps results at {overlaps_dir}.")
+
     #save the overlaps list to a file
-    overlaps_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_list.npy'))
+    overlaps_list_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_list_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.npy"))
     np.save(overlaps_list_path, overlaps_list)
     print(f"Overlaps list saved to {overlaps_list_path}.")
 
     #save the overlaps matrix to a file
-    overlaps_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_matrix.npy'))
+    overlaps_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_matrix_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.npy"))
     np.save(overlaps_path, overlaps)
     print(f"Overlaps matrix saved to {overlaps_path}.")
 
@@ -100,7 +109,7 @@ plt.colorbar(label='Number of shared neighbors')
 plt.title('Overlap of Nearest Neighbors between Centroids')
 plt.xlabel('Centroid Index')
 plt.ylabel('Centroid Index')
-heatmap_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_heatmap.png'))
+heatmap_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_heatmap_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
 plt.savefig(heatmap_path)
 print(f"Overlap heatmap saved to {heatmap_path}.")
 
@@ -109,7 +118,7 @@ print(f"Overlap heatmap saved to {heatmap_path}.")
 
 hist_arr = np.zeros((len(centroids), config.visualization.histogram_bins), dtype=int)
 for i in range(len(centroids)):
-    hist = np.histogram(overlaps[i], bins=config.visualization.histogram_bins, range=(0, config.clustering.k_nearest_10000))
+    hist = np.histogram(overlaps[i], bins=config.visualization.histogram_bins, range=(0, config.clustering.k_nearest_large))
     hist_arr[i] = hist[0]
 plt.figure(figsize=(config.visualization.fig_width_compact, config.visualization.fig_height_compact))
 plt.imshow(hist_arr, aspect='auto', cmap='viridis')
@@ -117,7 +126,7 @@ plt.colorbar(label='Frequency of shared neighbors')
 plt.title('Histogram of Shared Neighbors for Each Centroid')
 plt.xlabel('Number of Shared Neighbors (binned)')
 plt.ylabel('Centroid Index')
-histogram_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_histogram_heatmap.png'))
+histogram_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_histogram_heatmap_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
 plt.savefig(histogram_path)
 print(f"Overlap histogram heatmap saved to {histogram_path}.")
 
@@ -127,7 +136,7 @@ plt.hist(overlaps_list[:, 2], bins=config.visualization.histogram_bins, color='b
 plt.title('Distribution of Shared Neighbors between Centroids')
 plt.xlabel('Number of Shared Neighbors')
 plt.ylabel('Frequency')
-histogram_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_histogram.png'))
+histogram_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_histogram_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
 plt.savefig(histogram_path)
 print(f"Overlap histogram saved to {histogram_path}.")
 
@@ -140,7 +149,7 @@ for i in range(len(centroids)):
     G.add_node(i)
 for i in range(len(centroids)):
     for j in range(i+1, len(centroids)):
-        G.add_edge(i, j, weight=overlaps[i, j]/1000) #normalize the weight by the maximum number of shared neighbors (10000) to avoid very large weights
+        G.add_edge(i, j, weight=overlaps[i, j]/config.clustering.k_nearest_large) #normalize the weight by the maximum number of shared neighbors (10000) to avoid very large weights
 pos = nx.spring_layout(G, weight='weight')
 #poss is a list with entries of the form [0-199] : [x,y]
 #From here we can use matplotlib to graph
@@ -154,7 +163,7 @@ for key in pos:
 plt.figure(figsize=(config.visualization.fig_width_large, config.visualization.fig_height_large))
 for i in range(len(centroids)):
     for j in range(i+1, len(centroids)):
-        weight = overlaps[i, j]/10000
+        weight = overlaps[i, j]/config.clustering.k_nearest_large
         if weight > 0: #only plot edges with non-zero weight
             plt.plot([pos[i][0], pos[j][0]], [pos[i][1], pos[j][1]], color='blue', alpha=weight, linewidth=weight*5)
 plt.scatter([pos[i][0] for i in range(len(centroids))], [pos[i][1] for i in range(len(centroids))], color='red', s=100)
@@ -164,7 +173,7 @@ for i in range(len(centroids)):
 
 
 plt.title('Graph of Centroids based on Shared Neighbors')
-graph_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,'overlaps_graph.png'))
+graph_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_graph_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
 plt.savefig(graph_path, dpi=300)
 print(f"Overlap graph saved to {graph_path}.")
 
