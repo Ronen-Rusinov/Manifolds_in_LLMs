@@ -1,17 +1,3 @@
-#This script relies on the outputs of obtain_10000_nearest_to_centroids.py
-#And subsequently relies on the output of minibatch_kmeans.py as well as
-#on the output of produce_balltree.py
-
-#Their outputs are stored in 
-#/outputs/Balltree/nearest_neighbors_indices_1.npy
-#/outputs/minibatch_kmeans/centroids.npy
-#and /outputs/Balltree/balltree_layer_18_all_parquets.pkl respectively.
-
-#For each centroid, we use the precomputed nearest neighbor indices
-#to retrieve a sorounding area of activations,
-#and then we apply isomap to reduce the dimensionality of this area to 12D
-#for visualisation purposes, several samples will also be reduced to 2D and 3D using isomap.
-
 import argparse
 import os
 import sys
@@ -21,54 +7,74 @@ from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-from utils.load_data import load_all_parquets
+from config_manager import load_config, add_config_argument
+import argparse
+from utils import common
 
 import numpy as np
 import joblib
 from sklearn.manifold import Isomap
 import plotly.graph_objects as go
 
-# Configuration
-N_NEIGHBORS = 10 #number of neighbors for geodesic distance estimation in Isomap
-DEFAULT_N_COMPONENTS = 12
-N_COMPONENTS_3D = 3
-N_COMPONENTS_4D = 4
-N_VISUALIZATION_SAMPLES = 5  # Number of samples to visualize in 3D/4D
+# Load configuration with CLI argument overrides
+parser = argparse.ArgumentParser(description="Isomap for each centroid")
 
-def load_centroids():
-    """Load centroids from minibatch_kmeans."""
-    centroids_path = Path(__file__).parent.parent / "results" / "minibatch_kmeans" / "centroids.npy"
-    print(f"[{datetime.now()}] Loading centroids from {centroids_path}...", flush=True)
-    centroids = np.load(centroids_path)
-    print(f"[{datetime.now()}] Centroids loaded. Shape: {centroids.shape}", flush=True)
-    return centroids
+# Isomap parameters
+parser.add_argument("--offset", nargs="?", type=int, default=0, help="Starting centroid index (0-based)")
+parser.add_argument("--count", nargs="?", type=int, default=None, help="Number of centroids to process")
+parser.add_argument("--n-components", type=int ,help="Number of components for Isomap")
+parser.add_argument("--n-neighbors-isomap", type=int ,help="Number of neighbors for geodesic distance estimation in Isomap")
+parser.add_argument("--n-centroids", type=int, help="Number of centroids")
+parser.add_argument("--random-seed", type=int, help="Random seed for reproducibility")
+parser.add_argument("--no-3d", action="store_true", help="Disable 3D visualization embeddings")
+parser.add_argument("--no-4d", action="store_true", help="Disable 4D visualization embeddings")
+parser.add_argument("--visualise-every", type=int, help="Visualize every n centroids")
 
-def load_neighbor_indices(indices_file="nearest_neighbors_indices_1.npy"):
-    """Load precomputed nearest neighbor indices."""
-    indices_path = Path(__file__).parent.parent / "results" / "Balltree" / indices_file
-    print(f"[{datetime.now()}] Loading nearest neighbor indices from {indices_path}...", flush=True)
-    neighbor_indices = np.load(indices_path)
-    print(f"[{datetime.now()}] Neighbor indices loaded. Shape: {neighbor_indices.shape}", flush=True)
-    return neighbor_indices
+add_config_argument(parser)
+args = parser.parse_args()
+config = load_config(args.config)
 
-def load_activations():
-    """Load all activation vectors and corresponding prompts."""
-    print(f"[{datetime.now()}] Loading all activations and prompts...", flush=True)
-    df = load_all_parquets(timing=True)
-    activations = np.array(df['activation_layer_18'].tolist(), dtype=np.float32)
-    prompts = df['text_prefix'].tolist() if 'text_prefix' in df.columns else [None] * len(df)
-    print(f"[{datetime.now()}] Activations loaded. Shape: {activations.shape}", flush=True)
-    print(f"[{datetime.now()}] Prompts loaded. Count: {len(prompts)}", flush=True)
-    return activations, prompts
+# Override config with CLI arguments
+if args.n_components is not None:
+    config.dimensionality.n_components = args.n_components
+if args.n_centroids is not None:
+    config.clustering.n_centroids = args.n_centroids
+if args.random_seed is not None:
+    config.training.random_seed = args.random_seed
+if args.visualise_every is not None:
+    config.visualization.visualise_every_n_centroids = args.visualise_every
+if args.n_neighbors_isomap is not None:
+    config.dimensionality.n_neighbors = args.n_neighbors_isomap
 
-def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_neighbors):
+
+def apply_isomap_to_neighborhood(activations, neighbor_indices, n_components, n_neighbors_isomap):
     """Apply Isomap to a neighborhood of activations."""
-    isomap = Isomap(n_neighbors=n_neighbors, n_components=n_components, n_jobs=-1)
+    # Diagnostic checks
+    print(f"[{datetime.now()}] Isomap input shape: {activations.shape}", flush=True)
+    print(f"[{datetime.now()}] Isomap n_neighbors: {n_neighbors_isomap}, n_components: {n_components}", flush=True)
+    print(f"[{datetime.now()}] Activation stats - min: {activations.min():.6f}, max: {activations.max():.6f}, mean: {activations.mean():.6f}", flush=True)
+    print(f"[{datetime.now()}] Contains NaN: {np.isnan(activations).any()}, Contains Inf: {np.isinf(activations).any()}", flush=True)
+    
+    # Ensure n_neighbors doesn't exceed number of samples
+    n_neighbors_safe = min(n_neighbors_isomap, activations.shape[0] - 1)
+    if n_neighbors_safe != n_neighbors_isomap:
+        print(f"[{datetime.now()}] Warning: Reducing n_neighbors from {n_neighbors_isomap} to {n_neighbors_safe} (only {activations.shape[0]} samples)", flush=True)
+    
+    isomap = Isomap(n_neighbors=n_neighbors_safe, n_components=n_components, n_jobs=-1)
     embeddings = isomap.fit_transform(activations)
+    
+    print(f"[{datetime.now()}] Isomap output shape: {embeddings.shape}", flush=True)
+    print(f"[{datetime.now()}] Embeddings stats - min: {embeddings.min():.6f}, max: {embeddings.max():.6f}, mean: {embeddings.mean():.6f}", flush=True)
+    print(f"[{datetime.now()}] Output contains NaN: {np.isnan(embeddings).any()}, Contains Inf: {np.isinf(embeddings).any()}", flush=True)
+    
     return embeddings, isomap
 
-def get_text_snippet(text, first_n=5, last_n=10):
+def get_text_snippet(text, config, first_n=None, last_n=None):
     """Extract first and last n tokens from text."""
+    if first_n is None:
+        first_n = config.text.first_n_tokens_isomap
+    if last_n is None:
+        last_n = config.text.last_n_tokens_isomap
     if text is None:
         return "N/A"
     tokens = str(text).split()
@@ -118,7 +124,7 @@ def process_all_centroids(
             print(f"[{datetime.now()}] Warning: count {count} exceeds available centroids. Processing {n_centroids - offset} centroids instead.", flush=True)
             count = n_centroids - offset
     
-    output_dir = Path(__file__).parent.parent / "results" / "iso_atlas"
+    output_dir = Path(__file__).parent.parent / "results" / f"iso_atlas_{n_components}D"
     output_dir.mkdir(parents=True, exist_ok=True)
     
     print(f"[{datetime.now()}] Processing {count} centroids (offset: {offset}, range: [{offset}, {offset + count - 1}])...", flush=True)
@@ -144,7 +150,7 @@ def process_all_centroids(
             neighborhood_activations, 
             neighbor_idx, 
             n_components, 
-            N_NEIGHBORS
+            config.dimensionality.n_neighbors
         )
         
         # Save main results
@@ -157,7 +163,7 @@ def process_all_centroids(
         #delete isomap_main to free memory before next Isomap runs
         del isomap_main
         
-        if i % 10 == 0:
+        if i % config.visualization.visualise_every_n_centroids == 0:
             print(f"[{datetime.now()}] Processed {i + 1} centroids so far...", flush=True)
             embeddings_3d = None
             embeddings_4d = None
@@ -168,15 +174,15 @@ def process_all_centroids(
                 # Apply Isomap to 3D for visualization (sample)
                 print(f"[{datetime.now()}] Applying Isomap to 3D for visualization...", flush=True)
                 # Use a subset of samples for 3D to reduce computation
-                sample_size_3d = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
+                sample_size_3d = min(config.visualization.n_samples_visualization * 1000, len(neighborhood_activations))
                 sample_indices_3d = np.random.choice(len(neighborhood_activations), sample_size_3d, replace=False)
                 sampled_activations_3d = neighborhood_activations[sample_indices_3d]
             
                 embeddings_3d, isomap_3d = apply_isomap_to_neighborhood(
                     sampled_activations_3d,
                     sample_indices_3d,
-                    N_COMPONENTS_3D,
-                    min(50, sample_size_3d - 1)
+                    3,
+                    10
                 )
                     
                 # Save 3D results
@@ -193,15 +199,16 @@ def process_all_centroids(
             if enable_4d:
                 # Apply Isomap to 4D for visualization (sample)
                 print(f"[{datetime.now()}] Applying Isomap to 4D for visualization...", flush=True)
-                sample_size_4d = min(N_VISUALIZATION_SAMPLES * 1000, len(neighborhood_activations))
+                sample_size_4d = min(config.visualization.n_samples_visualization * 1000, len(neighborhood_activations))
                 sample_indices_4d = np.random.choice(len(neighborhood_activations), sample_size_4d, replace=False)
                 sampled_activations_4d = neighborhood_activations[sample_indices_4d]
+                print(f"[{datetime.now()}] Sample 4D activations shape: {sampled_activations_4d.shape}", flush=True)
                 
                 embeddings_4d, isomap_4d = apply_isomap_to_neighborhood(
                     sampled_activations_4d,
                     sample_indices_4d,
-                    N_COMPONENTS_4D,
-                    min(30, sample_size_4d - 1)
+                    4,
+                    10
                 )
                     
                 # Save 4D results
@@ -235,113 +242,113 @@ def create_html_visualizations(embeddings_3d, embeddings_4d, prompts_3d, prompts
     For 3D: projects to 2D (x, y) with z represented by color.
     For 4D: projects to 3D (x, y, z) with w represented by color.
     """
-    if embeddings_3d is not None and prompts_3d is not None:
-        # Create text snippets for hover
-        hover_text_3d = [get_text_snippet(p) for p in prompts_3d]
-        
-        # 3D Interactive visualization (2D plot with color for 3rd dimension)
-        fig_3d = go.Figure(data=go.Scatter(
-            x=embeddings_3d[:, 0],
-            y=embeddings_3d[:, 1],
-            mode='markers',
-            marker=dict(
-                size=6,
-                color=embeddings_3d[:, 2],
-                colorscale='Sunsetdark',
-                showscale=True,
-                colorbar=dict(title="Component 3"),
-                opacity=0.7
-            ),
-            text=hover_text_3d,
-            hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 3:</b> %{marker.color:.3f}<extra></extra>',
-        ))
-        fig_3d.update_layout(
-            title=f"3D Isomap Embeddings (2D projection + color) - Centroid {centroid_idx}",
-            xaxis_title="Component 1",
-            yaxis_title="Component 2",
-            hovermode='closest',
-            width=1000,
-            height=800
-        )
-        html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
-        fig_3d.write_html(str(html_3d_path))
-        print(f"[{datetime.now()}] 3D interactive HTML saved to {html_3d_path}", flush=True)
+    def filter_valid_data(embeddings, prompts):
+        """Filter out rows with NaN or Inf values."""
+        valid_mask = np.isfinite(embeddings).all(axis=1)
+        return embeddings[valid_mask], [prompts[i] for i in range(len(prompts)) if valid_mask[i]]
     
-    if embeddings_4d is not None and prompts_4d is not None:
-        # Create text snippets for hover
-        hover_text_4d = [get_text_snippet(p) for p in prompts_4d]
+    if embeddings_3d is not None and prompts_3d is not None:
+        # Filter out invalid data
+        embeddings_3d, prompts_3d = filter_valid_data(embeddings_3d, prompts_3d)
         
-        # 4D Interactive visualization (3D plot with color for 4th dimension)
-        fig_4d = go.Figure(data=go.Scatter3d(
-            x=embeddings_4d[:, 0],
-            y=embeddings_4d[:, 1],
-            z=embeddings_4d[:, 2],
-            mode='markers',
-            marker=dict(
-                size=4,
-                color=embeddings_4d[:, 3],
-                colorscale='Sunsetdark',
-                showscale=True,
-                colorbar=dict(title="Component 4"),
-                opacity=0.7
-            ),
-            text=hover_text_4d,
-            hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 4:</b> %{marker.color:.3f}<extra></extra>',
-        ))
-        fig_4d.update_layout(
-            title=f"4D Isomap Embeddings (3D projection + color) - Centroid {centroid_idx}",
-            scene=dict(
+        if len(embeddings_3d) == 0:
+            print(f"[{datetime.now()}] Warning: No valid 3D embeddings for centroid {centroid_idx}", flush=True)
+        else:
+            # Create text snippets for hover
+            hover_text_3d = [get_text_snippet(p, config) for p in prompts_3d]
+            
+            # 3D Interactive visualization (2D plot with color for 3rd dimension)
+            fig_3d = go.Figure(data=go.Scatter(
+                x=embeddings_3d[:, 0].tolist(),
+                y=embeddings_3d[:, 1].tolist(),
+                mode='markers',
+                marker=dict(
+                    size=6,
+                    color=embeddings_3d[:, 2].tolist(),
+                    colorscale='Sunsetdark',
+                    showscale=True,
+                    colorbar=dict(title="Component 3"),
+                    opacity=0.7
+                ),
+                text=hover_text_3d,
+                hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 3:</b> %{marker.color:.3f}<extra></extra>',
+            ))
+            fig_3d.update_layout(
+                title=f"3D Isomap Embeddings (2D projection + color) - Centroid {centroid_idx}",
                 xaxis_title="Component 1",
                 yaxis_title="Component 2",
-                zaxis_title="Component 3"
-            ),
-            hovermode='closest',
-            width=1000,
-            height=800
-        )
-        html_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_visualization_4D.html"
-        fig_4d.write_html(str(html_4d_path))
-        print(f"[{datetime.now()}] 4D interactive HTML saved to {html_4d_path}", flush=True)
+                hovermode='closest',
+                #width=config.visualization.fig_width_large,
+                #height=config.visualization.fig_height_large
+            )
+            html_3d_path = output_dir / "3D" / f"centroid_{centroid_idx:04d}_visualization_3D.html"
+            fig_3d.write_html(str(html_3d_path), include_plotlyjs=True)
+            print(f"[{datetime.now()}] 3D interactive HTML saved to {html_3d_path}", flush=True)
+    
+    if embeddings_4d is not None and prompts_4d is not None:
+        # Filter out invalid data
+        embeddings_4d, prompts_4d = filter_valid_data(embeddings_4d, prompts_4d)
+        
+        if len(embeddings_4d) == 0:
+            print(f"[{datetime.now()}] Warning: No valid 4D embeddings for centroid {centroid_idx}", flush=True)
+        else:
+            # Create text snippets for hover
+            hover_text_4d = [get_text_snippet(p, config) for p in prompts_4d]
+            
+            # 4D Interactive visualization (3D plot with color for 4th dimension)
+            fig_4d = go.Figure(data=go.Scatter3d(
+                x=embeddings_4d[:, 0].tolist(),
+                y=embeddings_4d[:, 1].tolist(),
+                z=embeddings_4d[:, 2].tolist(),
+                mode='markers',
+                marker=dict(
+                    size=4,
+                    color=embeddings_4d[:, 3].tolist(),
+                    colorscale='Sunsetdark',
+                    showscale=True,
+                    colorbar=dict(title="Component 4"),
+                    opacity=0.7
+                ),
+                text=hover_text_4d,
+                hovertemplate='<b>Prompt (first & last 20 tokens):</b><br>%{text}<br><b>Component 4:</b> %{marker.color:.3f}<extra></extra>',
+            ))
+            fig_4d.update_layout(
+                title=f"4D Isomap Embeddings (3D projection + color) - Centroid {centroid_idx}",
+                scene=dict(
+                    xaxis_title="Component 1",
+                    yaxis_title="Component 2",
+                    zaxis_title="Component 3"
+                ),
+                hovermode='closest',
+                #width=config.visualization.fig_width_large,
+                #height=config.visualization.fig_height_large
+            )
+            html_4d_path = output_dir / "4D" / f"centroid_{centroid_idx:04d}_visualization_4D.html"
+            fig_4d.write_html(str(html_4d_path), include_plotlyjs=True)
+            print(f"[{datetime.now()}] 4D interactive HTML saved to {html_4d_path}", flush=True)
 
 def main():
     print(f"[{datetime.now()}] Starting isomap processing for each centroid...", flush=True)
     
-    # Parse command-line arguments
-    parser = argparse.ArgumentParser(description="Run Isomap per centroid.")
-    parser.add_argument("offset", nargs="?", type=int, default=0, help="Starting centroid index (0-based)")
-    parser.add_argument("count", nargs="?", type=int, default=None, help="Number of centroids to process")
-    parser.add_argument(
-        "--n-components",
-        type=int,
-        default=DEFAULT_N_COMPONENTS,
-        help=f"Target dimensionality for main Isomap embeddings (default: {DEFAULT_N_COMPONENTS})",
-    )
-    parser.add_argument("--no-3d", action="store_true", help="Disable 3D visualization embeddings")
-    parser.add_argument("--no-4d", action="store_true", help="Disable 4D visualization embeddings")
-    args = parser.parse_args()
+    # Parse command-line arguments for script-specific parameters
+    # (config parameters are already loaded at module level)
+
+    # Parse only script-specific args, ignoring config-related ones
+    args, unknown = parser.parse_known_args()
 
     offset = args.offset
     count = args.count
-    n_components = args.n_components
     enable_3d = not args.no_3d
     enable_4d = not args.no_4d
     
-    # Load required data
-    centroids = load_centroids()
-    neighbor_indices = load_neighbor_indices()
-    activations, prompts = load_activations()
+    # Load required data using shared utilities
+    #Centroid filename is of the format f"centroids_{config.clustering.n_centroids}.npy", and neighbor indices filename is of the format f'nearest_{k_nearest}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy
+    centroids = common.load_centroids(f"minibatch_kmeans_{config.clustering.n_centroids}")
+    neighbor_indices = common.load_neighbor_indices(f"nearest_{config.clustering.k_nearest_large}_neighbors_indices_layer_{config.model.layer_for_activation}_n_centroids_{config.clustering.n_centroids}.npy")
+    activations, prompts = common.load_activations_with_prompts(config=config)
     
-    # Verify shapes match
-    print(f"[{datetime.now()}] Verifying data shapes...", flush=True)
-    print(f"  Centroids shape: {centroids.shape}", flush=True)
-    print(f"  Neighbor indices shape: {neighbor_indices.shape}", flush=True)
-    print(f"  Activations shape: {activations.shape}", flush=True)
-    print(f"  Prompts count: {len(prompts)}", flush=True)
-    
-    if centroids.shape[0] != neighbor_indices.shape[0]:
-        raise ValueError("Number of centroids does not match number of neighbor indices!")
-    if activations.shape[0] != len(prompts):
-        raise ValueError("Number of activations does not match number of prompts!")
+    # Validate data consistency
+    common.validate_data_consistency(centroids, neighbor_indices, activations, prompts)
     
     # Process centroids in specified range
     try:
@@ -350,7 +357,7 @@ def main():
             neighbor_indices,
             activations,
             prompts,
-            n_components,
+            config.dimensionality.n_components,
             enable_3d=enable_3d,
             enable_4d=enable_4d,
             offset=offset,

@@ -1,0 +1,155 @@
+# Default Configuration for Manifolds in LLMs Project
+# This file centralizes all hyperparameters and numerical values
+# Override any setting via command-line arguments or profile configs
+
+# ============================================================================
+# MODEL & DIMENSIONALITY SPECIFICATIONS
+# ============================================================================
+model:
+  # Latent/embedding dimensions
+  latent_dim: 12              # Default latent dimension for autoencoders/Isomap
+  latent_dim_2d: 2            # 2D visualization dimension (visualization only)
+  latent_dim_3d: 3            # 3D visualization dimension (visualization only)
+  latent_dim_4d: 4            # 4D visualization dimension (visualization only)
+  
+  # Layer indices for activation extraction
+  layer_for_activation: 18    # Primary layer for activation extraction
+  layer_alternative: 6        # Alternative layer for comparison
+  
+  # Model parameters
+  balltree_leaf_size: 40      # BallTree leaf_size parameter
+  procrustes_test_dim: 2304   # Dimension for orthogonal matrix in Procrustes test
+
+# ============================================================================
+# TRAINING & OPTIMIZATION PARAMETERS
+# ============================================================================
+training:
+  epochs: 300                 # Number of training epochs
+  epochs_extended: 1000       # Extended epochs for certain training modes
+  pretrain_epochs: 200        # Pretraining epochs
+  learning_rate: 1.0e-3       # Standard learning rate
+  learning_rate_alt: 3.0e-3   # Alternative learning rate (5x standard)
+  
+  # Early stopping
+  patience: 20                # Patience for early stopping (default)
+  patience_extended: 50       # Extended patience for longer training
+  
+  # Regularization
+  regularization_weight: 0.1  # L2 regularization weight
+  noise_level: 0.05           # Noise level for synthetic data
+  
+  # Gradient accumulation
+  accumulation_steps: 6       # Gradient accumulation steps for memory efficiency
+  
+  # Random seed
+  random_seed: 42             # Random seed for reproducibility
+
+# ============================================================================
+# CLUSTERING & NEIGHBORHOOD SPECIFICATIONS
+# ============================================================================
+clustering:
+  # Counts
+  n_centroids: 200            # Number of centroids from MinibatchKMeans
+  
+  # K-nearest neighbors
+  k_neighbors_3d: 5000         # Min neighbors for 3D Isomap sampling
+  k_neighbors_4d: 3000         # Min neighbors for 4D Isomap sampling
+  
+  # Large-scale neighborhood
+  k_nearest_large: 10000      # Number of nearest neighbors (large-scale)
+  
+  # KMeans parameters
+  kmeans_n_init: 3            # Number of initializations for KMeans
+  kmeans_verbose: 10          # Verbosity level for KMeans
+  kmeans_reassignment_ratio: 0.05  # Reassignment ratio for KMeans
+
+# ============================================================================
+# BATCH & DATA SPECIFICATIONS
+# ============================================================================
+data:
+  batch_size: 200000          # Batch size for MiniBatchKMeans
+  
+  # Data fractions/splits
+  train_fraction: 0.5         # Fraction of data to use for training (50%)
+  val_fraction: 0.2           # Fraction of data to use for validation (20%)
+  test_train_split: 0.7       # Train/test split fraction
+  
+  # Sample sizes
+  n_samples_synthetic: 1000   # Number of samples for synthetic data
+  n_samples_locality: 10      # Sample size for locality checks
+  n_samples_visualization: 5000  # Number of samples for visualization
+  n_samples_base: 5           # Base multiplier for visualization samples
+  
+  # Procrustes test
+  procrustes_n_samples: 5000  # Number of test data points for Procrustes
+
+# ============================================================================
+# DIMENSIONALITY REDUCTION
+# ============================================================================
+dimensionality:
+  n_components: 12            # Primary number of components (Isomap/PCA)
+  n_neighbors: 10             # Number of neighbors for manifold learning
+  
+  # Visualization
+  n_components_2d: 2          # Components for 2D visualization (visualization only)
+  n_components_3d: 3          # Components for 3D visualization (visualization only)
+  n_components_4d: 4          # Components for 4D visualization (visualization only)
+
+# ============================================================================
+# TEXT PROCESSING & CONTEXT
+# ============================================================================
+text:
+  first_n_words: 20           # First N words for text snippet context
+  last_n_words: 20            # Last N words for text snippet context
+  first_n_tokens_isomap: 5    # First N tokens for Isomap text extraction
+  last_n_tokens_isomap: 10    # Last N tokens for Isomap text extraction
+
+# ============================================================================
+# VISUALIZATION & PLOTTING
+# ============================================================================
+visualization:
+  # Figure sizes (in inches)
+  fig_width_standard: 12      # Standard figure width
+  fig_height_standard: 6      # Standard figure height
+  fig_width_compact: 10       # Compact figure width
+  fig_height_compact: 8       # Compact figure height
+  fig_width_large: 30         # Large figure width for graphs
+  fig_height_large: 30        # Large figure height for graphs
+  
+  # Histogram/plot parameters
+  histogram_bins: 50          # Number of histogram bins
+  histogram_bins_alt: 100     # Alternative number of histogram bins
+  
+  # Dimensions (visualization only - do not remove these)
+  dim_2d: 2                   # 2D visualization (visualization only)
+  dim_3d: 3                   # 3D visualization (visualization only)
+  dim_4d: 4                   # 4D visualization (visualization only)
+
+  # Visualization frequency for centroids
+  visualise_every_n_centroids: 5
+
+# ============================================================================
+# NUMERICAL CONSTANTS & THRESHOLDS
+# ============================================================================
+numerical:
+  zero_threshold: 1.0e-5      # Tolerance for numerical comparison
+  sentinel_value: -1          # Sentinel value for missing/skipped data
+  
+  # PCA interpretation
+  pca_max_samples: 100        # Max activations sampled per PCA component
+
+# ============================================================================
+# REGULARIZATION & NOISE (Synthetic Data)
+# ============================================================================
+synthetic_data:
+  noise_level: 0.05           # Noise level for swiss roll data
+  n_noise_dims: 2302           # Noise dimensions added to synthetic data
+  n_data_dims: 2              # Original data dimensions
+  n_total_dims: 2304           # Total expanded dimensions (2 + 118)
+
+# ============================================================================
+# LOGGING & I/O
+# ============================================================================
+logging:
+  log_interval: 1             # Logging interval (in epochs or batches)
+  verbose_level: 10           # Default verbosity level

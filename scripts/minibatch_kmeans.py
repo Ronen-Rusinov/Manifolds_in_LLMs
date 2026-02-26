@@ -14,36 +14,46 @@ from sklearn.cluster import MiniBatchKMeans
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from utils.load_data import load_all_parquets
+from config_manager import load_config, add_config_argument
+import argparse
 
-def main():
+def main(config):
+    # Load configuration with CLI argument overrides
     print("Loading all activations...")
     start_time = time.time()
     df = load_all_parquets(timing=True)
     print(f"Total time to load: {time.time() - start_time:.2f}s")
     print(f"DataFrame shape: {df.shape}")
     
-    # Extract activations from layer 18
+    # Extract activations from configured layer
     print("\nExtracting activation vectors...")
-    activations = np.array(df['activation_layer_18'].tolist(), dtype=np.float32)
-    print(f"Activations shape: {activations.shape}")
+    layer = config.model.layer_for_activation
+    column_name = f'activation_layer_{layer}'
+    if column_name not in df.columns:
+        raise ValueError(f"Column '{column_name}' not found in data. Available columns: {list(df.columns)}")
+    activations = np.array(df[column_name].tolist(), dtype=np.float32)
+    print(f"Activations shape: {activations.shape} (from layer {layer})")
     
     # Run MiniBatchKMeans
     print("\nRunning MiniBatchKMeans clustering...")
     print("Parameters:")
-    print(f"  - batch_size: 200000")
-    print(f"  - n_clusters: 1000")
-    print(f"  - random_state: 42")
+    print(f"  - batch_size: {config.data.batch_size}")
+    print(f"  - n_clusters: {config.clustering.n_clusters}")
+    print(f"  - random_state: {config.training.random_seed}")
+    print(f"  - max_iter: {config.training.epochs}")
+    print(f"  - max_no_improvement: {config.training.patience}")
+    print(f"  - reassignment_ratio: {config.clustering.kmeans_reassignment_ratio}")
     
     start_time = time.time()
     kmeans = MiniBatchKMeans(
-        n_clusters=1000,
-        batch_size=200_000,
-        random_state=42,
-        verbose=10,
-        n_init=3,
-        max_iter=300,
-        max_no_improvement=30, 
-        reassignment_ratio=0.05
+        n_clusters=config.clustering.n_clusters,
+        batch_size=config.data.batch_size,
+        random_state=config.training.random_seed,
+        verbose=config.clustering.kmeans_verbose,
+        n_init=config.clustering.kmeans_n_init,
+        max_iter=config.training.epochs,
+        max_no_improvement=config.training.patience, 
+        reassignment_ratio=config.clustering.kmeans_reassignment_ratio
 
     )
     kmeans.fit(activations)
@@ -52,7 +62,7 @@ def main():
     print(f"Inertia: {kmeans.inertia_:.4f}")
     
     #save centroids
-    centroids_path = Path(__file__).parent.parent / "results" / "minibatch_kmeans_1000" / "centroids_1000.npy"
+    centroids_path = Path(__file__).parent.parent / "results" / f"minibatch_kmeans_{config.clustering.n_clusters}" / f"centroids_{config.clustering.n_clusters}.npy"
     #if directory doesn't exist, create it
     centroids_path.parent.mkdir(parents=True, exist_ok=True)
     np.save(centroids_path, kmeans.cluster_centers_)
@@ -64,9 +74,9 @@ def main():
         print(f"  - {param}: {value}")
     
     #save params
-    output_dir = Path(__file__).parent.parent / "results" / "minibatch_kmeans_1000"
+    output_dir = Path(__file__).parent.parent / "results" / f"minibatch_kmeans_{config.clustering.n_clusters}"
     output_dir.mkdir(parents=True, exist_ok=True)
-    params_path = output_dir / "kmeans_params_1000.txt"
+    params_path = output_dir / f"kmeans_params_{config.clustering.n_clusters}.txt"
     with open(params_path, "w") as f:
         f.write("MiniBatchKMeans Parameters\n")
         f.write("=" * 30 + "\n")
@@ -75,7 +85,7 @@ def main():
     print(f"Parameters saved to {params_path}")
     
     # Create a summary file
-    summary_path = output_dir / "summary_1000.txt"
+    summary_path = output_dir / f"summary_{config.clustering.n_clusters}.txt"
     with open(summary_path, "w") as f:
         f.write("MiniBatchKMeans Results\n")
         f.write("=" * 50 + "\n\n")
@@ -96,5 +106,40 @@ def main():
     
     print(f"Summary saved to {summary_path}")
 
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run MiniBatchKMeans clustering on activations")
+
+    # MiniBatchKMeans parameters
+    parser.add_argument("--n_clusters", type=int, help="Number of clusters")
+    parser.add_argument("--batch_size", type=int, help="Batch size for MiniBatchKMeans")
+    parser.add_argument("--max_iter", "--epochs", type=int, dest="epochs", help="Maximum number of iterations (epochs)")
+    parser.add_argument("--max_no_improvement", "--patience", type=int, dest="patience", help="Number of iterations with no improvement before stopping")
+    parser.add_argument("--reassignment_ratio", type=float, help="Reassignment ratio for KMeans")
+    parser.add_argument("--kmeans_n_init", type=int, help="Number of KMeans initializations")
+    parser.add_argument("--kmeans_verbose", type=int, help="Verbosity level for KMeans")
+    parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+    
+    add_config_argument(parser)
+    args = parser.parse_args()
+    config = load_config(args.config)
+    
+    # Override config with CLI arguments
+    if args.n_clusters is not None:
+        config.clustering.n_clusters = args.n_clusters
+    if args.batch_size is not None:
+        config.data.batch_size = args.batch_size
+    if args.epochs is not None:
+        config.training.epochs = args.epochs
+    if args.patience is not None:
+        config.training.patience = args.patience
+    if args.reassignment_ratio is not None:
+        config.clustering.kmeans_reassignment_ratio = args.reassignment_ratio
+    if args.kmeans_n_init is not None:
+        config.clustering.kmeans_n_init = args.kmeans_n_init
+    if args.kmeans_verbose is not None:
+        config.clustering.kmeans_verbose = args.kmeans_verbose
+    if args.random_seed is not None:
+        config.training.random_seed = args.random_seed
+    
+    main(config)
