@@ -111,14 +111,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run MiniBatchKMeans clustering on activations")
 
     # MiniBatchKMeans parameters
-    parser.add_argument("--n_clusters", type=int, help="Number of clusters")
-    parser.add_argument("--batch_size", type=int, help="Batch size for MiniBatchKMeans")
-    parser.add_argument("--max_iter", "--epochs", type=int, dest="epochs", help="Maximum number of iterations (epochs)")
-    parser.add_argument("--max_no_improvement", "--patience", type=int, dest="patience", help="Number of iterations with no improvement before stopping")
-    parser.add_argument("--reassignment_ratio", type=float, help="Reassignment ratio for KMeans")
-    parser.add_argument("--kmeans_n_init", type=int, help="Number of KMeans initializations")
-    parser.add_argument("--kmeans_verbose", type=int, help="Verbosity level for KMeans")
-    parser.add_argument("--random_seed", type=int, help="Random seed for reproducibility")
+    parser.add_argument("--n-clusters", type=int, help="Number of clusters")
+    parser.add_argument("--batch-size", type=int, help="Batch size for MiniBatchKMeans")
+    parser.add_argument("--max-iter", "--epochs", type=int, dest="epochs", help="Maximum number of iterations (epochs)")
+    parser.add_argument("--max-no-improvement", "--patience", type=int, dest="patience", help="Number of iterations with no improvement before stopping")
+    parser.add_argument("--reassignment-ratio", type=float, help="Reassignment ratio for KMeans")
+    parser.add_argument("--kmeans-n-init", type=int, help="Number of KMeans initializations")
+    parser.add_argument("--kmeans-verbose", type=int, help="Verbosity level for KMeans")
+    parser.add_argument("--random-seed", type=int, help="Random seed for reproducibility")
     
     add_config_argument(parser)
     args = parser.parse_args()
