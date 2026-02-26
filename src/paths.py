@@ -76,7 +76,7 @@ def get_isomap_embeddings_path(centroid_index: int, n_components: int) -> Path:
     """
     centroid_index_str = f"{centroid_index:04d}"
     return (
-        get_results_dir() / "iso_atlas" / f"{n_components}D" /
+        get_results_dir() / f"iso_atlas_{n_components}D" / f"{n_components}D" /
         f"centroid_{centroid_index_str}_embeddings_{n_components}D.npy"
     )
 
@@ -92,7 +92,7 @@ def get_isomap_3d_embeddings_path(centroid_index: int) -> Path:
     """
     centroid_index_str = f"{centroid_index:04d}"
     return (
-        get_results_dir() / "iso_atlas" / "3D" /
+        get_results_dir() / f"iso_atlas_3D" / "3D" /
         f"centroid_{centroid_index_str}_embeddings_3D.npy"
     )
 
@@ -108,7 +108,7 @@ def get_isomap_4d_embeddings_path(centroid_index: int) -> Path:
     """
     centroid_index_str = f"{centroid_index:04d}"
     return (
-        get_results_dir() / "iso_atlas" / "4D" /
+        get_results_dir() / f"iso_atlas_4D" / "4D" /
         f"centroid_{centroid_index_str}_embeddings_4D.npy"
     )
 
