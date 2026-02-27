@@ -98,6 +98,23 @@ def get_autoencoder_embeddings_path(centroid_index: int, n_components: int) -> P
     )
 
 
+def get_pca_embeddings_path(centroid_index: int, n_components: int) -> Path:
+    """Get path to PCA embeddings for a specific centroid.
+    
+    Args:
+        centroid_index: Index of centroid (0-based)
+        n_components: Number of dimensions for embeddings
+    
+    Returns:
+        Path to embeddings npy file
+    """
+    centroid_index_str = f"{centroid_index:04d}"
+    return (
+        get_results_dir() / f"pca_atlas_{n_components}D" / f"{n_components}D" /
+        f"centroid_{centroid_index_str}_embeddings_{n_components}D.npy"
+    )
+
+
 def get_isomap_3d_embeddings_path(centroid_index: int) -> Path:
     """Get path to 3D Isomap embeddings for visualization.
     
