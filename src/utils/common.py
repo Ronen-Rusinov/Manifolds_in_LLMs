@@ -3,6 +3,9 @@
 This module centralizes loading functions used across multiple scripts
 to reduce code duplication and ensure consistency.
 """
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from datetime import datetime
 from pathlib import Path
