@@ -53,7 +53,8 @@ def train_with_gradient_accumulation(
     patience,
     chunk_size,
     device='cpu',
-    regularization_weight=0.0
+    regularization_weight=1,
+    val_chunk_size=None
 ):
     """
     Train autoencoder with gradient accumulation for memory efficiency.
@@ -145,17 +146,32 @@ def train_with_gradient_accumulation(
         # Optimizer step after accumulating gradients from all chunks
         optimizer.step()
         
-        # Validation step (process all validation data at once or in chunks if needed)
+        # Validation step (process in chunks to avoid GPU OOM)
         model.eval()
         with torch.no_grad():
-            val_data_tensor = torch.from_numpy(val_data).to(device)
-            val_recon = model(val_data_tensor)
-            val_loss = criterion(val_recon, val_data_tensor)
-            del val_data_tensor, val_recon
+            num_val_samples = val_data.shape[0]
+            effective_val_chunk = val_chunk_size if val_chunk_size is not None else chunk_size
+            num_val_chunks = (num_val_samples + effective_val_chunk - 1) // effective_val_chunk
+            weighted_val_loss = 0.0
+
+            for chunk_idx in range(num_val_chunks):
+                chunk_start = chunk_idx * effective_val_chunk
+                chunk_end = min((chunk_idx + 1) * effective_val_chunk, num_val_samples)
+                chunk_data = val_data[chunk_start:chunk_end]
+                chunk_tensor = torch.from_numpy(chunk_data).to(device)
+                chunk_recon = model(chunk_tensor)
+                chunk_loss = criterion(chunk_recon, chunk_tensor)
+
+                chunk_size_actual = chunk_end - chunk_start
+                weighted_val_loss += chunk_loss.item() * (chunk_size_actual / num_val_samples)
+
+                del chunk_tensor, chunk_recon, chunk_loss
+                torch.cuda.empty_cache() if device.type == 'cuda' else None
+
         model.train()
         
         train_losses.append(accumulated_train_loss)
-        val_losses.append(val_loss.item())
+        val_losses.append(weighted_val_loss)
         
         epoch_time = time.time() - epoch_start
         
@@ -164,13 +180,13 @@ def train_with_gradient_accumulation(
             print(f"  Train Loss: {accumulated_train_loss:.6f}")
             if regularization_weight > 0:
                 print(f"  Reg Loss: {accumulated_reg_loss:.6f}")
-            print(f"  Val Loss: {val_loss.item():.6f}")
+            print(f"  Val Loss: {weighted_val_loss:.6f}")
             print(f"  Epoch Time: {epoch_time:.3f}s")
             print(f"  Chunks processed: {num_chunks}")
         
         # Early stopping logic
-        if val_loss.item() < best_val_loss:
-            best_val_loss = val_loss.item()
+        if weighted_val_loss < best_val_loss:
+            best_val_loss = weighted_val_loss
             patience_counter = 0
         else:
             patience_counter += 1
@@ -254,7 +270,12 @@ def visualize_reconstruction_errors(errors, error_stats, output_path, num_bins=5
         num_bins: Number of bins for histogram
     """
     plt.figure(figsize=(10, 6))
-    plt.hist(errors, bins=num_bins, edgecolor='black', alpha=0.7)
+
+    #ignore the extreme errors in the 99th percentile for better visualization
+    percentile_99 = np.percentile(errors, 99)
+    errors_to_plot = errors[errors <= percentile_99]
+
+    plt.hist(errors_to_plot, bins=num_bins, edgecolor='black', alpha=0.7)
     plt.title(f"Reconstruction Error Distribution - Mean: {error_stats['mean']:.6f}, Std: {error_stats['std']:.6f}")
     plt.xlabel("Reconstruction Error (MSE)")
     plt.ylabel("Frequency")
