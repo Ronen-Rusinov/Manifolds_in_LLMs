@@ -177,3 +177,80 @@ graph_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'resu
 plt.savefig(graph_path, dpi=300)
 print(f"Overlap graph saved to {graph_path}.")
 
+
+# MDS-based 1D embedding of centroids based on overlap similarity
+print("\n" + "="*80)
+print("Computing 1D embedding of centroids using MDS...")
+print("="*80)
+
+from sklearn.manifold import MDS
+
+# Convert overlap similarity matrix to distance matrix
+# Distance = max_overlap - overlap (higher overlap = lower distance)
+max_overlap = overlaps.max()
+distance_matrix = max_overlap - overlaps
+# Set diagonal to 0 (distance from centroid to itself)
+np.fill_diagonal(distance_matrix, 0)
+
+print(f"Distance matrix computed. Range: [{distance_matrix.min():.2f}, {distance_matrix.max():.2f}]")
+
+# Apply MDS to get 1D embedding
+mds = MDS(n_components=1, dissimilarity='precomputed', random_state=42, normalized_stress='auto')
+embedding_1d = mds.fit_transform(distance_matrix)
+embedding_1d = embedding_1d.flatten()  # Convert to 1D array
+
+print(f"MDS embedding computed. Stress: {mds.stress_:.4f}")
+print(f"Embedding range: [{embedding_1d.min():.4f}, {embedding_1d.max():.4f}]")
+
+# Save the 1D embedding
+embedding_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"mds_1d_embedding_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.npy"))
+np.save(embedding_path, embedding_1d)
+print(f"1D embedding saved to {embedding_path}.")
+
+# Get the ordering of centroids by their 1D coordinate
+centroid_order = np.argsort(embedding_1d)
+
+# Visualization 1: 1D line plot showing centroid positions
+plt.figure(figsize=(config.visualization.fig_width_large, 4))
+plt.scatter(embedding_1d, np.zeros_like(embedding_1d), c=range(len(centroids)), cmap='rainbow', s=100, alpha=0.7)
+for i, (x, y) in enumerate(zip(embedding_1d, np.zeros_like(embedding_1d))):
+    plt.text(x, y + 0.02, str(i), fontsize=6, ha='center', va='bottom')
+plt.xlabel('MDS 1D Coordinate')
+plt.yticks([])
+plt.title('1D Embedding of Centroids (colored by original index)')
+plt.grid(axis='x', alpha=0.3)
+embedding_line_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"mds_1d_line_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
+plt.savefig(embedding_line_path, dpi=300, bbox_inches='tight')
+print(f"1D embedding line plot saved to {embedding_line_path}.")
+
+# Visualization 2: Reordered overlap matrix according to MDS embedding
+plt.figure(figsize=(config.visualization.fig_width_compact, config.visualization.fig_height_compact))
+reordered_overlaps = overlaps[centroid_order][:, centroid_order]
+plt.imshow(reordered_overlaps, cmap='magma')
+plt.colorbar(label='Number of shared neighbors')
+plt.title('Overlap Matrix Reordered by MDS 1D Embedding')
+plt.xlabel('Centroid Index (MDS ordered)')
+plt.ylabel('Centroid Index (MDS ordered)')
+reordered_heatmap_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"overlaps_heatmap_mds_reordered_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
+plt.savefig(reordered_heatmap_path, dpi=300)
+print(f"MDS-reordered overlap heatmap saved to {reordered_heatmap_path}.")
+
+# Visualization 3: Show the centroid ordering
+plt.figure(figsize=(config.visualization.fig_width_large, 6))
+plt.barh(range(len(centroid_order)), embedding_1d[centroid_order], color='steelblue')
+plt.xlabel('MDS 1D Coordinate')
+plt.ylabel('Centroid Index (MDS sorted)')
+plt.title('Centroids Sorted by MDS 1D Embedding')
+# Add original indices as y-tick labels
+plt.yticks(range(0, len(centroid_order), max(1, len(centroid_order)//20)), 
+           centroid_order[::max(1, len(centroid_order)//20)])
+plt.grid(axis='x', alpha=0.3)
+ordering_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'results','overlaps' ,f"mds_1d_ordering_{config.clustering.n_centroids}_{config.clustering.k_nearest_large}_{config.model.layer_for_activation}.png"))
+plt.savefig(ordering_path, dpi=300, bbox_inches='tight')
+print(f"MDS 1D ordering plot saved to {ordering_path}.")
+
+print("\n" + "="*80)
+print("MDS 1D embedding analysis complete!")
+print(f"Centroid ordering (by MDS coordinate): {centroid_order[:10]}... (showing first 10)")
+print("="*80)
+
