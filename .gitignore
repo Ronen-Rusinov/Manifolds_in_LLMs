@@ -239,3 +239,4 @@ test_*
 *.png
 *.svg
 *.backup
+*sanity*
