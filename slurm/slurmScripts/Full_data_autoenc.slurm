@@ -15,5 +15,5 @@ python -u scripts/train_tied_autoencoder_full_dataset.py \
   --layer 18 \
   --chunk-size 100000 \
   --epochs 1000 \
-  --learning-rate 1e-2 \
+  --learning-rate 2e-1 \
   --patience 100
