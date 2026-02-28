@@ -63,6 +63,30 @@ python experiments/activation_norms.py --config config/profile_production.yaml
 python experiments/check_locales.py --config config/profile_production.yaml
 ```
 
+## Patchscopes Module
+
+The repository includes a reusable **Patchscopes** module for interpretability analysis:
+
+```python
+from src.patchscopes import PatchscopesWrapper
+
+# Load your model
+ps = PatchscopesWrapper(model, tokenizer, device)
+
+# Extract and decode hidden representations
+source_hs = ps.prepare_source_inputs("Paris, France", "France")
+result = ps.patchscopes(
+    source_reprs=source_hs[10],
+    target_prompt="Country: ?",
+    target_placeholder="?",
+    source_layer=10,
+    target_layer=5,
+    end_phrase="\n"
+)
+```
+
+See [src/PATCHSCOPES_README.md](src/PATCHSCOPES_README.md) for full documentation and [examples/patchscopes_example.py](examples/patchscopes_example.py) for usage examples.
+
 ## Notes
 
 - Most scripts accept a --config argument and additional CLI options for key parameters.
