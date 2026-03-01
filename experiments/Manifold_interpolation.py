@@ -14,7 +14,7 @@ Ideally we'd run gradient descent on the projected path to achieve a geodesic, b
 Afterwards, each point in both interpolation methods will be patched into the generation process of a prompt designed to
 decode continous embeddings into natural language, in a form reminiscent of:
 
-"A = A ; B = B ; C = C ; ? ="
+"A -> A ; B -> B ; C -> C ; ? -> "
 Where ? is the placeholder for the interpolated hidden state, and A,B,C,... are 
 randomly sampled tokens and phrases to encourage the model to decode the hidden state into natural language, and not just output a string of unintalligable tokens.
 """
@@ -78,7 +78,8 @@ def load_balltree(layer: int, config: Config) -> Tuple[BallTree, np.ndarray]:
     
     # Load the actual data points for weighted projection
     # Note: BallTree stores the data internally
-    data_points = tree.data
+    # Convert to proper numpy array to avoid Cython memoryview indexing issues
+    data_points = np.asarray(tree.data, dtype=np.float32)
     
     print(f"[{datetime.now()}] BallTree loaded with {len(data_points)} points.", flush=True)
     return tree, data_points
@@ -148,11 +149,16 @@ def project_local_pca(
     distances = distances[0] if distances.ndim > 1 else distances
     indices = indices[0] if indices.ndim > 1 else indices
     
+    # Convert indices to numpy array to fix Cython memoryview indexing issue
+    indices = np.asarray(indices, dtype=np.int64)
+    
     # Get the nearest neighbor points (excluding the query point itself if it's the closest)
     # If the closest point has distance ~0, it's likely the point itself, so skip it
     if distances[0] < 1e-6:
         neighbor_points = data_points[indices[1:k_nearest + 1]]
     else:
+        test = data_points[0]
+        test = data_points[indices[0]]
         neighbor_points = data_points[indices[:k_nearest]]
     
     # Compute the center of the local neighborhood
@@ -278,19 +284,17 @@ def generate_decoding_prompt(num_examples: int = 3) -> str:
     """
     # Sample random tokens/phrases
     example_tokens = [
-        "apple", "banana", "computer", "mountain", "ocean", 
-        "happiness", "science", "music", "journey", "wisdom",
-        "elephant", "galaxy", "poetry", "thunder", "crystal"
+        "cat" , "seven", "hello"
     ]
     
     random.shuffle(example_tokens)
     examples = example_tokens[:num_examples]
     
     # Build prompt
-    prompt_parts = [f"{token} = {token}" for token in examples]
-    prompt_parts.append("? =")
+    prompt_parts = [f"{token}->{token}" for token in examples]
+    prompt_parts.append("?")  # Placeholder for the interpolated hidden state
     
-    return " ; ".join(prompt_parts)
+    return "; ".join(prompt_parts)
 
 
 def decode_hidden_state_with_patchscopes(
@@ -320,7 +324,12 @@ def decode_hidden_state_with_patchscopes(
     target_prompt = generate_decoding_prompt(num_examples=3)
     target_placeholder = "?"
     
-    # Use patchscopes to decode
+    # Get forbidden token IDs from the prompt to avoid repetition
+    tokenizer = patchscopes_wrapper.tokenizer
+    prompt_token_ids = tokenizer.encode(target_prompt, add_special_tokens=False)
+    bad_words_ids = [[token_id] for token_id in set(prompt_token_ids)]
+    
+    # Use patchscopes to decode with forbidden tokens from the prompt
     decoded_text = patchscopes_wrapper.patchscopes(
         source_reprs=hidden_state,
         target_prompt=target_prompt,
@@ -329,7 +338,8 @@ def decode_hidden_state_with_patchscopes(
         target_layer=target_layer,
         end_phrase="\n",
         max_new_tokens=10,
-        do_sample=False
+        do_sample=False,
+        bad_words_ids=bad_words_ids
     )
     
     return decoded_text.strip()

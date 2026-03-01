@@ -7,9 +7,9 @@
 #SBATCH --cpus-per-task=10
 #SBATCH --mem=100GB
 #SBATCH --partition=studentbatch
-#SBATCH --gres=gpu:1
-#SBATCH --constraint="geforce_rtx_2080"
-#SBATCH --array=0-2
+#IGNORE --gres=gpu:1
+#IGNORE --constraint="geforce_rtx_2080"
+#SBATCH --array=[0]
 
 
 #If slurm jobid == 0, add option --method local_pca
