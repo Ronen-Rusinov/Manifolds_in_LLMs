@@ -370,8 +370,8 @@ class AtlasLoader:
         state_dict = torch.load(model_path, map_location=self.device)
         
         # Infer input dimension from encoder weights
-        # encoder_mat_1 should have shape (hidden_dim, input_dim)
-        input_dim = state_dict['encoder_mat_1'].shape[1]
+        # encoder_mat_1 is stored as (input_dim, hidden_dim) custom matrix, not PyTorch Linear
+        input_dim = state_dict['encoder_mat_1'].shape[0]
         
         # Create model instance
         model = TiedWeightAutoencoder(
@@ -412,7 +412,7 @@ class AtlasLoader:
         
         # Encode
         with torch.no_grad():
-            embeddings = model.encoder(points_tensor)
+            embeddings = model.encode(points_tensor)
         
         embeddings_np = embeddings.cpu().numpy()
         
@@ -444,7 +444,7 @@ class AtlasLoader:
         
         # Decode
         with torch.no_grad():
-            reconstructed = model.decoder(embeddings_tensor)
+            reconstructed = model.decode(embeddings_tensor)
         
         reconstructed_np = reconstructed.cpu().numpy()
         
