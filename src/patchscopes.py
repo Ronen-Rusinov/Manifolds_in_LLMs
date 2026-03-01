@@ -1,4 +1,9 @@
-"""Patchscopes: A framework for inspecting hidden representations in language models.
+"""
+    THE FUNCTIONS IN THIS FILE ARE TAKEN FROM COURSE MATERIAL BY DANIELLA GOTTESMAN, AND MOR GEVA
+    ALL RIGHTS ARE RESERVED TO THE ORIGINAL AUTHORS, AND THIS USAGE IS UNDER THEIR EXPRESS PERMISSION.
+    LINK TO ORIGINAL MATERIAL: https://colab.research.google.com/drive/1Be42DpybrBxO3I-vZVyVuwo_acgIJucQ?usp=sharing
+
+Patchscopes: A framework for inspecting hidden representations in language models.
 
 This module implements Patchscopes, an interpretability tool that uses a model's
 own generative abilities to translate hidden representations into natural language.

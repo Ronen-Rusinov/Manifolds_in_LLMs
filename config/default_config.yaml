@@ -7,7 +7,7 @@
 # ============================================================================
 model:
   # Latent/embedding dimensions
-  latent_dim: 12              # Default latent dimension for autoencoders/Isomap
+  latent_dim: 50              # Default latent dimension for autoencoders/Isomap
   latent_dim_2d: 2            # 2D visualization dimension (visualization only)
   latent_dim_3d: 3            # 3D visualization dimension (visualization only)
   latent_dim_4d: 4            # 4D visualization dimension (visualization only)
@@ -87,7 +87,7 @@ data:
 # DIMENSIONALITY REDUCTION
 # ============================================================================
 dimensionality:
-  n_components: 12            # Primary number of components (Isomap/PCA)
+  n_components: 50            # Primary number of components (Isomap/PCA)
   n_neighbors: 10             # Number of neighbors for manifold learning
   
   # Visualization

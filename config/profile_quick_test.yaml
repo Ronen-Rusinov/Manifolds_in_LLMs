@@ -3,7 +3,7 @@
 # Use: python script.py --config config/profile_quick_test.yaml
 
 model:
-  latent_dim: 4              # Smaller for faster computation
+  latent_dim: 5             # Smaller for faster computation
   latent_dim_2d: 2
   latent_dim_3d: 3
   latent_dim_4d: 4

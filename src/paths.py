@@ -147,6 +147,74 @@ def get_isomap_4d_embeddings_path(centroid_index: int) -> Path:
     )
 
 
+def get_pca_model_path(centroid_index: int, n_components: int) -> Path:
+    """Get path to trained PCA model for a specific centroid.
+    
+    Args:
+        centroid_index: Index of centroid (0-based)
+        n_components: Number of dimensions for PCA
+    
+    Returns:
+        Path to PCA model joblib file
+    """
+    centroid_index_str = f"{centroid_index:04d}"
+    return (
+        get_results_dir() / f"pca_atlas_{n_components}D" / f"{n_components}D" /
+        f"centroid_{centroid_index_str}_pca_{n_components}D.joblib"
+    )
+
+
+def get_isomap_model_path(centroid_index: int, n_components: int) -> Path:
+    """Get path to trained Isomap model for a specific centroid.
+    
+    Args:
+        centroid_index: Index of centroid (0-based)
+        n_components: Number of dimensions for Isomap
+    
+    Returns:
+        Path to Isomap model joblib file
+    """
+    centroid_index_str = f"{centroid_index:04d}"
+    return (
+        get_results_dir() / f"iso_atlas_{n_components}D" / f"{n_components}D" /
+        f"centroid_{centroid_index_str}_isomap_{n_components}D.joblib"
+    )
+
+
+def get_autoencoder_model_path(centroid_index: int, n_components: int) -> Path:
+    """Get path to trained autoencoder model for a specific centroid.
+    
+    Args:
+        centroid_index: Index of centroid (0-based)
+        n_components: Latent dimension of autoencoder
+    
+    Returns:
+        Path to autoencoder model PyTorch file
+    """
+    centroid_index_str = f"{centroid_index:04d}"
+    return (
+        get_results_dir() / f"autoencoder_atlas_{n_components}D" / f"{n_components}D" /
+        f"centroid_{centroid_index_str}_autoencoder_{n_components}D.pt"
+    )
+
+
+def get_autoencoder_history_path(centroid_index: int, n_components: int) -> Path:
+    """Get path to autoencoder training history for a specific centroid.
+    
+    Args:
+        centroid_index: Index of centroid (0-based)
+        n_components: Latent dimension of autoencoder
+    
+    Returns:
+        Path to training history joblib file
+    """
+    centroid_index_str = f"{centroid_index:04d}"
+    return (
+        get_results_dir() / f"autoencoder_atlas_{n_components}D" / f"{n_components}D" /
+        f"centroid_{centroid_index_str}_history_{n_components}D.joblib"
+    )
+
+
 def get_mapping_alignment_dir() -> Path:
     """Get directory for mapping alignment results.
     

@@ -3,7 +3,7 @@
 # Use: python script.py --config config/profile_production.yaml
 
 model:
-  latent_dim: 12             # Standard 12D latent space
+  latent_dim: 50             # Standard 50D latent space
   latent_dim_2d: 2
   latent_dim_3d: 3
   latent_dim_4d: 4
@@ -46,7 +46,7 @@ data:
   procrustes_n_samples: 5000
 
 dimensionality:
-  n_components: 12           # Standard 12 components
+  n_components: 50           # Standard 50 components
   n_neighbors: 10            # Standard neighbors for manifold learning
   n_components_2d: 2
   n_components_3d: 3

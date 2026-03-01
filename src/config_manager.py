@@ -19,7 +19,7 @@ import yaml
 @dataclass
 class ModelConfig:
     """Model and dimensionality specifications."""
-    latent_dim: int = 12
+    latent_dim: int = 50
     latent_dim_2d: int = 2
     latent_dim_3d: int = 3
     latent_dim_4d: int = 4
@@ -74,7 +74,7 @@ class DataConfig:
 @dataclass
 class DimensionalityConfig:
     """Dimensionality reduction parameters."""
-    n_components: int = 12
+    n_components: int = 50
     n_neighbors: int = 10
     n_components_2d: int = 2
     n_components_3d: int = 3
