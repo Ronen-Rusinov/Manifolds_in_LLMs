@@ -218,6 +218,7 @@ def patchscopes(
     top_k: int = 50,
     top_p: float = 1.0,
     device: torch.device = None,
+    bad_words_ids: list = None,
 ) -> str:
     """
     THE FUNCTIONS IN THIS FILE ARE TAKEN FROM COURSE MATERIAL BY DANIELLA GOTTESMAN, AND MOR GEVA
@@ -244,6 +245,7 @@ def patchscopes(
         top_k: Top-k sampling parameter
         top_p: Nucleus sampling parameter
         device: Device to run on (defaults to model's device)
+        bad_words_ids: List of token ids that should not be generated (e.g., [[token1], [token2]])
     
     Returns:
         Generated text up to (but not including) end_phrase
@@ -303,7 +305,8 @@ def patchscopes(
             temperature=temperature,
             top_k=top_k,
             top_p=top_p,
-            use_cache=True
+            use_cache=True,
+            bad_words_ids=bad_words_ids
         )
 
     hook.remove()
