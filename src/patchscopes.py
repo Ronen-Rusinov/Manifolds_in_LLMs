@@ -29,7 +29,11 @@ def find_token_indices_for_word(
     text: str,
     word: str
 ) -> Tuple[Optional[int], Optional[int], Dict]:
-    """Find token indices corresponding to a word in tokenized text.
+    """
+    THE FUNCTIONS IN THIS FILE ARE TAKEN FROM COURSE MATERIAL BY DANIELLA GOTTESMAN, AND MOR GEVA
+    ALL RIGHTS ARE RESERVED TO THE ORIGINAL AUTHORS, AND THIS USAGE IS UNDER THEIR EXPRESS PERMISSION.
+    LINK TO ORIGINAL MATERIAL: https://colab.research.google.com/drive/1Be42DpybrBxO3I-vZVyVuwo_acgIJucQ?usp=sharing
+    Find token indices corresponding to a word in tokenized text.
     
     Uses detokenization to map tokens back to character spans. Works with
     BPE/wordpiece tokenizers (handles leading spaces).
@@ -83,7 +87,11 @@ def prepare_source_inputs(
     source_substring: str,
     device: torch.device = None
 ) -> Dict[int, torch.Tensor]:
-    """Extract and cache hidden states from source prompt.
+    """
+    THE FUNCTIONS IN THIS FILE ARE TAKEN FROM COURSE MATERIAL BY DANIELLA GOTTESMAN, AND MOR GEVA
+    ALL RIGHTS ARE RESERVED TO THE ORIGINAL AUTHORS, AND THIS USAGE IS UNDER THEIR EXPRESS PERMISSION.
+    LINK TO ORIGINAL MATERIAL: https://colab.research.google.com/drive/1Be42DpybrBxO3I-vZVyVuwo_acgIJucQ?usp=sharing
+    Extract and cache hidden states from source prompt.
     
     Runs the model on the source prompt and caches hidden states from all layers
     for the tokens corresponding to the source substring.
@@ -132,6 +140,9 @@ def prepare_soft_prompt_source_inputs(
     device: torch.device = None
 ) -> Dict[int, torch.Tensor]:
     """Extract hidden states from a continuous (soft) prompt.
+    THE FUNCTIONS IN THIS FILE ARE TAKEN FROM COURSE MATERIAL BY DANIELLA GOTTESMAN, AND MOR GEVA
+    ALL RIGHTS ARE RESERVED TO THE ORIGINAL AUTHORS, AND THIS USAGE IS UNDER THEIR EXPRESS PERMISSION.
+    LINK TO ORIGINAL MATERIAL: https://colab.research.google.com/drive/1Be42DpybrBxO3I-vZVyVuwo_acgIJucQ?usp=sharing
     
     Continuous prompts are embedding vectors optimized via prompt tuning.
     This function injects the continuous prompt into the model's first layer
@@ -208,8 +219,11 @@ def patchscopes(
     top_p: float = 1.0,
     device: torch.device = None,
 ) -> str:
-    """Apply Patchscopes to decode hidden representations into text.
-    
+    """
+    THE FUNCTIONS IN THIS FILE ARE TAKEN FROM COURSE MATERIAL BY DANIELLA GOTTESMAN, AND MOR GEVA
+    ALL RIGHTS ARE RESERVED TO THE ORIGINAL AUTHORS, AND THIS USAGE IS UNDER THEIR EXPRESS PERMISSION.
+    LINK TO ORIGINAL MATERIAL: https://colab.research.google.com/drive/1Be42DpybrBxO3I-vZVyVuwo_acgIJucQ?usp=sharing
+    Apply Patchscopes to decode hidden representations into text.
     Patches source representations into target prompt at specified layers,
     then generates text to decode the information in the representations.
     
@@ -308,7 +322,11 @@ def logit_lens(
     layer: int,
     k: int = 20,
 ) -> Dict[str, any]:
-    """Apply logit lens to decode hidden states via vocabulary projection.
+    """
+    THE FUNCTIONS IN THIS FILE ARE TAKEN FROM COURSE MATERIAL BY DANIELLA GOTTESMAN, AND MOR GEVA
+    ALL RIGHTS ARE RESERVED TO THE ORIGINAL AUTHORS, AND THIS USAGE IS UNDER THEIR EXPRESS PERMISSION.
+    LINK TO ORIGINAL MATERIAL: https://colab.research.google.com/drive/1Be42DpybrBxO3I-vZVyVuwo_acgIJucQ?usp=sharing
+    Apply logit lens to decode hidden states via vocabulary projection.
     
     Projects a hidden state from an intermediate layer through the model's
     unembedding matrix to see what tokens are most strongly represented.
