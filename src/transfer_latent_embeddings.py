@@ -19,9 +19,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import numpy as np
 
-from config_manager import load_config
-from utils import common
-from rigid_procrustes import impose_X_on_Y, euclidean_procrustes
+from src.config_manager import load_config
+from src.utils import common
+from src.rigid_procrustes import impose_X_on_Y, euclidean_procrustes
 
 # Valid embedding types
 VALID_EMBEDDING_TYPES = {"isomap", "pca", "autoencoder"}

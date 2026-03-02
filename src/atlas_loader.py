@@ -9,6 +9,8 @@ This module provides functionality to:
 
 import os
 import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Optional, Union, List
@@ -22,8 +24,8 @@ from sklearn.neighbors import KDTree
 # Add src to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from config_manager import Config, load_config
-import paths
+from src.config_manager import Config, load_config
+from src import paths
 
 
 class AtlasLoader:

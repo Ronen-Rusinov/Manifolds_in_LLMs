@@ -240,3 +240,24 @@ def get_isomap_12d_dir() -> Path:
         Path to isomap_12D directory
     """
     return get_results_dir() / "isomap_12D"
+
+
+def get_sorted_indices_path(method: str, centroid_index: int, n_components: int, pca_component: int) -> Path:
+    """Get path to sorted indices by projection on PCA component.
+    
+    Args:
+        method: Dimensionality reduction method ("iso", "pca", or "autoencoder")
+        centroid_index: Index of centroid (0-based)
+        n_components: Number of dimensions for embeddings
+        pca_component: PCA component index (0-based)
+    
+    Returns:
+        Path to sorted indices npy file
+    """
+    centroid_index_str = f"{centroid_index:04d}"
+    component_str = f"{pca_component:03d}"
+    return (
+        get_results_dir() / f"{method}_sorted_by_projection" / f"{n_components}D" /
+        f"centroid_{centroid_index_str}" /
+        f"sorted_indices_by_projection_on_PCA_component_{component_str}.npy"
+    )
